@@ -4,36 +4,32 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function generateBlogPost() {
   try {
-    // Let's list all models first to see what you have access to
-    console.log("Checking available models for your API key...");
-    const fetch = require('node-fetch'); // We use this to talk to the API directly
+    // UPDATED: Using the exact model name from your discovery list
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const prompt = "Write a professional, engaging blog post about a trending tech or AI topic. " +
+                   "Return the result EXACTLY in this format:\n" +
+                   "TITLE: [The Title]\n" +
+                   "CONTENT: [The HTML Body]";
+
+    console.log("Requesting content from Gemini 2.0 Flash...");
     
-    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.models) {
-        console.log("Your available models are:");
-        data.models.forEach(m => console.log("- " + m.name.replace('models/', '')));
-    } else {
-        console.log("Could not list models. Response:", JSON.stringify(data));
-    }
-
-    // Attempting to use the most common one again
-    const modelName = "gemini-1.5-flash"; 
-    const model = genAI.getGenerativeModel({ model: modelName });
-
-    const prompt = "Write a short blog post about trending tech. TITLE: [Title] CONTENT: [HTML]";
     const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const response = await result.response;
+    let text = response.text();
 
-    const title = text.match(/TITLE:\s*(.*)/i)[1].trim();
-    const content = text.match(/CONTENT:\s*([\s\S]*)/i)[1].trim();
+    // Clean up markdown markers if AI adds them
+    text = text.replace(/```html/g, "").replace(/```/g, "").trim();
 
+    // Parse the Title and Content
+    const title = text.split("TITLE:")[1].split("CONTENT:")[0].trim();
+    const content = text.split("CONTENT:")[1].trim();
+
+    console.log("Successfully generated: " + title);
     return { title, content };
 
   } catch (error) {
-    console.error("Gemini Error:", error.message);
+    console.error("Gemini Service Error:", error.message);
     throw error;
   }
 }
