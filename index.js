@@ -3,20 +3,36 @@ const images = require('./src/services/images');
 const firebase = require('./src/services/firebase');
 const blogger = require('./src/services/blogger');
 const telegram = require('./src/services/telegram');
+const helpers = require('./src/utils/helpers');
 
 async function startWorkflow() {
     try {
+        console.log("Checking Telegram...");
         if (!(await telegram.checkForTrigger())) return;
 
-        const blogData = await gemini.generateBlogPost(); // Now gets Category, Title, Intro, etc.
-        const imagePath = await images.createBlogImage(blogData.title);
-        const imageUrl = await firebase.uploadFile(imagePath);
-        
-        // Pass the whole blogData object to the template
+        console.log("Generating Content...");
+        const blogData = await gemini.generateBlogPost();
+
+        if (helpers.isDuplicate(blogData.title)) {
+            console.log("Duplicate detected. Skipping.");
+            return;
+        }
+
+        console.log("Creating Image...");
+        const imageData = await images.createBlogImage(blogData.title);
+
+        console.log("Saving Image...");
+        // NOTE: We pass imageData.filePath here to fix the Error you got
+        const imageUrl = await firebase.uploadFile(imageData.filePath);
+
+        console.log("Posting to Blogger...");
         const blogLink = await blogger.postToBlogger(blogData, imageUrl);
 
-        await telegram.sendLocalPhoto(`Done! \n\n${blogLink}`, imagePath);
-        console.log("Template post published!");
-    } catch (e) { console.error(e); }
+        console.log("Sending to Telegram...");
+        await telegram.sendLocalPhoto(`Done! \n\n${blogLink}`, imageData.filePath);
+
+        helpers.saveToHistory(blogData.title);
+        console.log("Workflow Complete!");
+    } catch (e) { console.error("Workflow failed:", e); }
 }
 startWorkflow();
