@@ -1,4 +1,3 @@
-// This is the "Boss" script
 const gemini = require('./src/services/gemini');
 const images = require('./src/services/images');
 const firebase = require('./src/services/firebase');
@@ -7,26 +6,27 @@ const telegram = require('./src/services/telegram');
 
 async function startWorkflow() {
     try {
-        console.log("1. Generating content with Gemini...");
+        console.log("Checking Telegram for triggers...");
+        const shouldStart = await telegram.checkForTrigger();
+
+        if (!shouldStart) {
+            console.log("No trigger found. Sleeping...");
+            return; // STOP the script here if no one pressed the button
+        }
+
+        console.log("Trigger found! Starting automation...");
+        
         const blogData = await gemini.generateBlogPost();
-
-        console.log("2. Creating image with text overlay...");
         const imagePath = await images.createBlogImage(blogData.title);
-
-        console.log("3. Uploading to Firebase...");
         const imageUrl = await firebase.uploadFile(imagePath);
-
-        console.log("4. Posting to Blogger...");
         const blogLink = await blogger.postToBlogger(blogData.title, blogData.content, imageUrl);
 
-        console.log("5. Sending Telegram notification...");
-        await telegram.sendMessage(`Done! \n\nLink: ${blogLink}`, imageUrl);
-
+        await telegram.sendMessage(`<b>New Post Published!</b>\n\n${blogLink}`, imageUrl);
         console.log("Workflow Complete!");
+
     } catch (error) {
         console.error("Workflow failed:", error);
     }
 }
 
-// Execute the workflow
 startWorkflow();
