@@ -4,22 +4,30 @@ const token = process.env.TELEGRAM_BOT_TOKEN;
 const chatId = process.env.TELEGRAM_CHAT_ID;
 const baseUrl = `https://api.telegram.org/bot${token}`;
 
-// NEW: This function checks if you sent /post or clicked the button
 async function checkForTrigger() {
-  const response = await axios.get(`${baseUrl}/getUpdates`);
-  const messages = response.data.result;
+  try {
+    const response = await axios.get(`${baseUrl}/getUpdates`);
+    const messages = response.data.result;
 
-  // Look through the last few messages
-  for (const msg of messages) {
-    if (msg.message && msg.message.text) {
-      const text = msg.message.text;
-      // If we find the trigger, we return true
-      if (text === '/post' || text === '🚀 Post Now') {
-        return true;
-      }
+    if (messages.length === 0) {
+        console.log("No new messages found in Telegram.");
+        return false;
     }
+
+    // Look at the very last message sent to the bot
+    const lastMessage = messages[messages.length - 1];
+    const text = lastMessage.message?.text;
+
+    console.log(`Last message received: "${text}"`);
+
+    if (text === '/post' || text === '🚀 Post Now') {
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error("Telegram Check Error:", err.message);
+    return false;
   }
-  return false;
 }
 
 async function sendMessage(text, imageUrl) {
