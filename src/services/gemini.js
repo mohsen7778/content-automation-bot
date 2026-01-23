@@ -4,11 +4,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function generateBlogPost() {
   try {
-    // UPDATED: Using the new Gemini 3 Flash model
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
+    // We add "Return ONLY the raw text" to keep Gemini 3 from being too chatty
     const prompt = "Write a short, engaging blog post about a trending tech topic. " +
-                   "Return the result EXACTLY in this format:\n" +
+                   "Return ONLY the following format without any other text or thinking:\n" +
                    "TITLE: [Title Here]\n" +
                    "CONTENT: [HTML Body Here]";
 
@@ -18,16 +18,29 @@ async function generateBlogPost() {
     const response = await result.response;
     let text = response.text();
 
-    // Clean up any extra AI markdown like ```html or ```
-    text = text.replace(/```html/g, "").replace(/```/g, "").trim();
+    /** * CLEANING LAYER:
+     * 1. Remove "Thinking" blocks if they appear in text
+     * 2. Remove Markdown code blocks like ```html
+     * 3. Extract only the portion between the first 'TITLE:' and the end
+     */
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, ""); // Remove hidden thoughts
+    text = text.replace(/```html|```/g, "").trim(); 
 
-    if (!text.includes("TITLE:") || !text.includes("CONTENT:")) {
-        console.log("Raw AI response was: " + text);
+    // Safety check: Find where the actual content starts
+    const startIndex = text.toUpperCase().indexOf("TITLE:");
+    if (startIndex === -1) {
+        console.log("Malformed Response: " + text);
+        throw new Error("AI failed to include 'TITLE:' in its output.");
+    }
+    
+    const cleanText = text.substring(startIndex);
+
+    if (!cleanText.includes("TITLE:") || !cleanText.includes("CONTENT:")) {
         throw new Error("AI response format was incorrect.");
     }
 
-    const title = text.split("TITLE:")[1].split("CONTENT:")[0].trim();
-    const content = text.split("CONTENT:")[1].trim();
+    const title = cleanText.split(/TITLE:/i)[1].split(/CONTENT:/i)[0].trim();
+    const content = cleanText.split(/CONTENT:/i)[1].trim();
 
     console.log("Successfully generated: " + title);
     return { title, content };
