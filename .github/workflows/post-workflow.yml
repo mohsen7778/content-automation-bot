@@ -1,21 +1,29 @@
 name: Telegram Blogger Bot
 
 on:
-  workflow_dispatch:      # This forces the button to appear
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/30 * * * *' # Runs every 30 minutes
+  workflow_dispatch:      # Allows the manual "Run" button
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     permissions:
-      contents: write
+      contents: write     # Allows the bot to save images and history back to your repo
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm install
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Run Automation
         run: node index.js
         env:
@@ -28,3 +36,12 @@ jobs:
           BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Save History and Images
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add data/history.json
+          git add public/images/*.png || echo "No new images to add"
+          git commit -m "Automated: Save history and new images [skip ci]" || echo "Nothing to commit"
+          git push
