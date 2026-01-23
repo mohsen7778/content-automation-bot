@@ -4,18 +4,35 @@ const path = require('path');
 const historyPath = path.join(__dirname, '../../data/history.json');
 
 function isDuplicate(title) {
+    // If the file doesn't exist yet, it's not a duplicate
     if (!fs.existsSync(historyPath)) return false;
-    const history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
-    return history.includes(title);
+    try {
+        const history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+        return history.includes(title);
+    } catch (e) {
+        return false;
+    }
 }
 
 function saveToHistory(title) {
     let history = [];
+    const dataDir = path.join(__dirname, '../../data');
+    
+    // Create data folder if missing
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
     if (fs.existsSync(historyPath)) {
-        history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+        try {
+            history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+        } catch (e) {
+            history = [];
+        }
     }
+    
     history.push(title);
-    if (history.length > 50) history.shift(); 
+    // Keep only last 50
+    if (history.length > 50) history.shift();
+    
     fs.writeFileSync(historyPath, JSON.stringify(history, null, 2));
 }
 
