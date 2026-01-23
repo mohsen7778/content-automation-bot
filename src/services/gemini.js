@@ -4,31 +4,27 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function generateBlogPost() {
   try {
-    // UPDATED: Using the 'latest' alias which is most stable for free tier
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    // Using the EXACT name from your discovery list: gemini-flash-latest
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-    const prompt = "Write a short, engaging blog post about a trending tech topic. " +
-                   "Format your response EXACTLY like this:\n" +
-                   "TITLE: [The Title]\n" +
-                   "CONTENT: [The HTML Body]";
+    const prompt = "Write a short blog post about trending technology. " +
+                   "Format exactly like this:\n" +
+                   "TITLE: [Title]\n" +
+                   "CONTENT: [HTML Body]";
 
-    console.log("Requesting content from Gemini Flash (Latest)...");
+    console.log("Requesting content from gemini-flash-latest...");
     
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
-
-    // Cleaning AI markdown
-    text = text.replace(/```html/g, "").replace(/```/g, "").trim();
+    const text = result.response.text();
 
     const title = text.split("TITLE:")[1].split("CONTENT:")[0].trim();
-    const content = text.split("CONTENT:")[1].trim();
+    const content = text.split("CONTENT:")[1].trim().replace(/```html/g, "").replace(/```/g, "");
 
-    console.log("Successfully generated: " + title);
+    console.log("Success! Title: " + title);
     return { title, content };
 
   } catch (error) {
-    console.error("Gemini Quota/Model Error:", error.message);
+    console.error("Gemini Error:", error.message);
     throw error;
   }
 }
