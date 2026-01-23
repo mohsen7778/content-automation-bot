@@ -1,30 +1,37 @@
 const admin = require('firebase-admin');
 
-// We will put the "Service Account Key" in GitHub Secrets later
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: process.env.FIREBASE_BUCKET_NAME // e.g., "my-project.appspot.com"
-});
+// Initialize only once
+if (!admin.apps.length) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        storageBucket: process.env.FIREBASE_BUCKET_NAME
+    });
+}
 
 const bucket = admin.storage().bucket();
 
 async function uploadFile(filePath) {
-  const fileName = `blog-images/${Date.now()}.png`;
-  
-  // 1. Upload the file to the bucket
-  const [file] = await bucket.upload(filePath, {
-    destination: fileName,
-    public: true, // Makes the image viewable by the public
-    metadata: {
-      contentType: 'image/png',
-    },
-  });
+    const fileName = `blog-images/${Date.now()}.png`;
+    
+    try {
+        console.log(`Uploading ${filePath} to bucket: ${process.env.FIREBASE_BUCKET_NAME}...`);
+        
+        // Upload the file
+        await bucket.upload(filePath, {
+            destination: fileName,
+            public: true,
+            metadata: { contentType: 'image/png' }
+        });
 
-  // 2. Return the public URL
-  // Note: Depending on your Firebase settings, you might need this format:
-  return `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+        // This creates a public URL that Blogger can definitely read
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+        console.log("Image uploaded successfully: " + publicUrl);
+        return publicUrl;
+    } catch (error) {
+        console.error("Firebase Upload Error:", error.message);
+        throw error;
+    }
 }
 
 module.exports = { uploadFile };
