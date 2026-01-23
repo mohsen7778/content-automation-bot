@@ -1,28 +1,22 @@
 const gemini = require('./src/services/gemini');
 const images = require('./src/services/images');
+const firebase = require('./src/services/firebase');
 const blogger = require('./src/services/blogger');
 const telegram = require('./src/services/telegram');
 
 async function startWorkflow() {
     try {
-        console.log("Checking Telegram...");
         if (!(await telegram.checkForTrigger())) return;
 
-        console.log("Generating Blog...");
-        const blogData = await gemini.generateBlogPost();
+        const blogData = await gemini.generateBlogPost(); // Now gets Category, Title, Intro, etc.
+        const imagePath = await images.createBlogImage(blogData.title);
+        const imageUrl = await firebase.uploadFile(imagePath);
+        
+        // Pass the whole blogData object to the template
+        const blogLink = await blogger.postToBlogger(blogData, imageUrl);
 
-        console.log("Creating Image...");
-        const imageData = await images.createBlogImage(blogData.title);
-
-        console.log("Posting to Blogger...");
-        // We send the Base64 image string here
-        const blogLink = await blogger.postToBlogger(blogData.title, blogData.content, imageData.base64Image);
-
-        console.log("Sending to Telegram...");
-        // We send the local file here
-        await telegram.sendLocalPhoto(blogData.title + "\n\n" + blogLink, imageData.filePath);
-
-        console.log("DONE!");
+        await telegram.sendLocalPhoto(`Done! \n\n${blogLink}`, imagePath);
+        console.log("Template post published!");
     } catch (e) { console.error(e); }
 }
 startWorkflow();
