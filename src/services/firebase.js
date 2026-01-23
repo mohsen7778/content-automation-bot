@@ -1,35 +1,29 @@
-const admin = require('firebase-admin');
+const fs = require('fs');
+const path = require('path');
 
-// Initialize only once
-if (!admin.apps.length) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        storageBucket: process.env.FIREBASE_BUCKET_NAME
-    });
-}
-
-const bucket = admin.storage().bucket();
-
-async function uploadFile(filePath) {
-    const fileName = `blog-images/${Date.now()}.png`;
-    
+async function uploadFile(tempFilePath) {
     try {
-        console.log(`Uploading ${filePath} to bucket: ${process.env.FIREBASE_BUCKET_NAME}...`);
-        
-        // Upload the file
-        await bucket.upload(filePath, {
-            destination: fileName,
-            public: true,
-            metadata: { contentType: 'image/png' }
-        });
+        // 1. Create a "public" folder if it doesn't exist
+        const publicDir = path.join(__dirname, '../../public/images');
+        if (!fs.existsSync(publicDir)) {
+            fs.mkdirSync(publicDir, { recursive: true });
+        }
 
-        // This creates a public URL that Blogger can definitely read
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-        console.log("Image uploaded successfully: " + publicUrl);
+        // 2. Move the image from temp to public/images
+        const fileName = `${Date.now()}.png`;
+        const newPath = path.join(publicDir, fileName);
+        fs.renameSync(tempFilePath, newPath);
+
+        // 3. Create the GitHub URL
+        // Replace 'mohsen7778' and 'content-automation-bot' if your names are different
+        const username = "mohsen7778"; 
+        const repo = "content-automation-bot";
+        const publicUrl = `https://raw.githubusercontent.com/${username}/${repo}/main/public/images/${fileName}`;
+
+        console.log("Image saved to GitHub: " + publicUrl);
         return publicUrl;
     } catch (error) {
-        console.error("Firebase Upload Error:", error.message);
+        console.error("Storage Error:", error.message);
         throw error;
     }
 }
