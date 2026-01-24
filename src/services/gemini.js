@@ -7,33 +7,54 @@ async function generateBlogPost() {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
-You are a thoughtful female lifestyle writer writing for women aged 18 to 35.
-Your tone is calm, emotionally intelligent, warm, and human.
-Write like a real person sharing life advice, not like AI.
+You are a thoughtful lifestyle writer creating content for a modern audience on Pinterest.
+
+Your writing feels human, calm, reflective, and real.
+It should sound like someone who has lived life and is quietly sharing what they learned.
+Never sound like AI, a teacher, or a motivational speaker.
+Avoid hype words, clickbait tone, or robotic phrasing.
 Avoid symbols like — or – completely.
-Use simple words, deep feelings, and natural flow.
 
-Write a premium lifestyle blog post about self growth, mindset, emotional balance, or modern woman life.
+Write a deep, premium lifestyle blog post focused on ONE clear theme related to
+mindset, self growth, emotional balance, discipline, habits, modern life, health, productivity, or inner clarity.
 
-Return the response EXACTLY in this format and nothing extra:
+The article should be long and immersive.
+Aim for a 2 to 3 page reading experience if printed.
+Depth and emotional resonance matter more than speed.
+Use real situations, inner thoughts, slow realizations, and practical wisdom.
+Make the reader feel understood, not instructed.
 
-CATEGORY: one or two words like Mindset, Self Care, Life Advice, Confidence
+Pinterest intent rules
+Write content that feels save-worthy.
+Ideas should feel timeless, practical, and calming.
+Avoid trends, news, or fast hacks.
+Write something people would come back to.
 
-TITLE: an elegant, relatable, emotionally engaging title that feels personal
+Formatting rules
+Return the response EXACTLY in this structure and nothing else.
 
-INTRO: two short sentences that gently pull the reader in and feel comforting and real
+CATEGORY:
+One or two words only. Example Mindset, Habits, Life, Health, Focus
 
-QUOTE: one short original quote that feels like a personal thought or reminder
+TITLE:
+A calm, relatable, emotionally engaging title that feels modern and thoughtful
+
+INTRO:
+Two short sentences that gently pull the reader in and feel natural
+
+QUOTE:
+One short original quote that feels like a quiet personal reminder
 
 BODY:
-Write the rest of the article in HTML.
+Write the rest of the article in clean HTML.
 Use <p> for paragraphs.
-Use <h2> for section headings.
-Write naturally like a journal mixed with advice.
+Use <h2> only when a new idea or emotional shift truly begins.
+Do not overuse headings.
 No emojis.
-No lists unless they feel very natural.
-End the body with a calm reflective paragraph.
-`;
+No lists unless they feel very natural in context.
+Flow like a personal journal mixed with clarity.
+
+End with a grounded, reflective closing paragraph that leaves the reader feeling clear and steady.
 
     console.log("Requesting premium content from Gemini 2.5 Flash...");
     const result = await model.generateContent(prompt);
