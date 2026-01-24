@@ -9,10 +9,8 @@ async function getImages(query, count = 1) {
         });
 
         if (response.data.photos && response.data.photos.length > 0) {
-            // Return an array of image URLs
             return response.data.photos.map(photo => photo.src.large2x);
         }
-        // Fallback image if Pexels finds nothing
         return ["https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg"];
     } catch (error) {
         console.error("Pexels Error:", error.message);
