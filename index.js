@@ -1,48 +1,26 @@
-const gemini = require("./src/services/gemini");
-const images = require("./src/services/images");
-const blogger = require("./src/services/blogger");
-const telegram = require("./src/services/telegram");
-const helpers = require("./src/utils/helpers");
+// index.js
+require('dotenv').config();
+const { generateContent } = require('./src/services/ai'); // Assuming your AI file has this function
+const { getPexelsImage } = require('./src/services/pexels');
+const { postToBlogger } = require('./src/services/blogger');
 
-async function startWorkflow() {
+async function runBot() {
     try {
-        console.log("Checking Telegram...");
-        if (!(await telegram.checkForTrigger())) return;
+        console.log("Step 1: Generating content with AI...");
+        // This should return { title, category, intro, body, quote }
+        const blogData = await generateContent(); 
 
-        console.log("Generating Content...");
-        const blogData = await gemini.generateBlogPost();
+        console.log(`Step 2: Searching Pexels for: ${blogData.category}...`);
+        // We use the category (e.g., 'Fitness' or 'Recipe') to find the image
+        const freshImageUrl = await getPexelsImage(blogData.category);
 
-        if (helpers.isDuplicate(blogData.title)) {
-            console.log("Duplicate detected. Skipping.");
-            return;
-        }
+        console.log("Step 3: Posting to Blogger...");
+        const postUrl = await postToBlogger(blogData, freshImageUrl);
 
-        console.log("Fetching Images...");
-        const imageUrls = await images.getImages(blogData.title, 3);
-
-        const imageHTML = imageUrls
-            .map(
-                url =>
-                    `<div class="mia-image-wrap"><img src="${url}" alt="${blogData.title}"></div>`
-            )
-            .join("\n");
-
-        const finalBody = imageHTML + "\n" + blogData.body;
-
-        console.log("Posting to Blogger...");
-        const blogLink = await blogger.postToBlogger(
-            { ...blogData, body: finalBody }
-        );
-
-        console.log("Sending to Telegram...");
-        await telegram.sendMessage(`New post published:\n${blogLink}`);
-
-        helpers.saveToHistory(blogData.title);
-        console.log("Workflow Complete!");
-
-    } catch (e) {
-        console.error("Workflow failed:", e);
+        console.log("Done! Post created successfully at:", postUrl);
+    } catch (error) {
+        console.error("Bot failed at some point:", error);
     }
 }
 
-startWorkflow();
+runBot();
