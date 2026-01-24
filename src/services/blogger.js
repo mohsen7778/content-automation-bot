@@ -1,17 +1,16 @@
 const { google } = require('googleapis');
 
 const oauth2Client = new google.auth.OAuth2(
-process.env.BLOGGER_CLIENT_ID,
-process.env.BLOGGER_CLIENT_SECRET
+  process.env.BLOGGER_CLIENT_ID,
+  process.env.BLOGGER_CLIENT_SECRET
 );
 
 oauth2Client.setCredentials({ refresh_token: process.env.BLOGGER_REFRESH_TOKEN });
 const blogger = google.blogger({ version: 'v3', auth: oauth2Client });
 
 async function postToBlogger(blogData, imageUrl) {
-// YOUR FINAL TEMPLATE - EXACTLY AS PROVIDED
-const finalHtml = `
-
+  // This is your exact curated template
+  const finalHtml = `
   <style>  
     html, body, .main-inner, .column-center-inner, .content-inner,   
     .post-outer, .post-body, .entry-content, #main-wrapper, .main-outer {  
@@ -78,11 +77,14 @@ const finalHtml = `
     });  
   </script>  `;
 
-const res = await blogger.posts.insert({
-blogId: process.env.BLOGGER_BLOG_ID,
-requestBody: { title: blogData.title, content: finalHtml },
-});
-return res.data.url;
+  const res = await blogger.posts.insert({
+    blogId: process.env.BLOGGER_BLOG_ID,
+    requestBody: { 
+      title: blogData.title, 
+      content: finalHtml 
+    },
+  });
+  return res.data.url;
 }
 
 module.exports = { postToBlogger };
