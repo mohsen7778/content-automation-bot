@@ -1,26 +1,23 @@
 const axios = require('axios');
-const fs = require('fs');
-const FormData = require('form-data');
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
-const chatId = process.env.TELEGRAM_CHAT_ID;
-const baseUrl = `https://api.telegram.org/bot${token}`;
-
-async function checkForTrigger() {
-    const res = await axios.get(`${baseUrl}/getUpdates`);
-    const msg = res.data.result.pop();
-    return msg?.message?.text === '/post' || msg?.message?.text === '🚀 Post Now';
-}
-
-async function sendLocalPhoto(caption, filePath) {
-    const form = new FormData();
-    form.append('chat_id', chatId);
-    form.append('caption', caption);
-    form.append('photo', fs.createReadStream(filePath));
+async function sendToTelegram(title, postUrl, imageUrl) {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
     
-    await axios.post(`${baseUrl}/sendPhoto`, form, {
-        headers: form.getHeaders()
-    });
+    // This creates a nice caption with the title and a clickable link
+    const caption = `✨ *New Post Live on Notes from Mia* ✨\n\n*${title}*\n\n📖 Read more here: ${postUrl}`;
+
+    try {
+        await axios.post(`https://api.telegram.org/bot${token}/sendPhoto`, {
+            chat_id: chatId,
+            photo: imageUrl,
+            caption: caption,
+            parse_mode: 'Markdown'
+        });
+        console.log("Telegram notification sent!");
+    } catch (error) {
+        console.error("Telegram Error:", error.response ? error.response.data : error.message);
+    }
 }
 
-module.exports = { checkForTrigger, sendLocalPhoto };
+module.exports = { sendToTelegram };
