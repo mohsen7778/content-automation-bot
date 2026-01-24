@@ -21,7 +21,7 @@ async function postToBlogger(blogData) {
       display: none !important; visibility: hidden !important; height: 0 !important;
     }
 
-    /* THE HEADER - FIXED POS FOR SCROLL EFFECT */
+    /* THE HEADER */
     .mia-header-area {
       position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;
       width: 100% !important; height: 85px !important; display: flex !important;
@@ -42,33 +42,41 @@ async function postToBlogger(blogData) {
       letter-spacing: 4px; text-transform: uppercase; color: #1f1f1f;
     }
 
-    /* CONTENT LAYOUT */
+    /* CONTENT LAYOUT - FIXED SPACING */
     .mia-main {
-      max-width: 760px; margin: 0 auto !important; 
-      background: #ffffff; padding: 125px 22px 100px !important; 
-      position: relative; z-index: 10;
+      max-width: 760px; 
+      margin: 0 auto !important; 
+      background: #ffffff; 
+      padding: 110px 22px 100px !important; /* Reduced from 125px to fix the gap */
+      position: relative; 
+      z-index: 10;
     }
     .mia-meta {
       text-align: center; font-size: 0.76rem; letter-spacing: 3px;
-      text-transform: uppercase; color: #b08a5c; margin-bottom: 10px; font-weight: 600;
+      text-transform: uppercase; color: #b08a5c; margin-bottom: 12px !important; font-weight: 600;
     }
     .mia-title {
-      font-family: 'Playfair Display', serif; font-size: clamp(2.3rem, 6vw, 3.4rem);
-      text-align: center; line-height: 1.2; margin-bottom: 40px; color: #000;
+      font-family: 'Playfair Display', serif; font-size: clamp(2.1rem, 6vw, 3.2rem);
+      text-align: center; line-height: 1.25; margin: 0 0 45px !important; color: #000;
     }
     .mia-image-wrap { width: 100%; margin-bottom: 50px; }
-    .mia-image-wrap img { width: 100%; height: auto !important; border-radius: 15px; display: block; }
+    .mia-image-wrap img { width: 100%; height: auto !important; border-radius: 15px; display: block; margin: 0 auto; }
     
     .mia-body { font-size: 1.28rem; line-height: 1.95; color: #222; }
-    .mia-intro { font-size: 1.4rem; font-weight: 500; margin-bottom: 35px; color: #111; }
+    .mia-intro { font-size: 1.4rem; font-weight: 500; margin-bottom: 35px; color: #111; line-height: 1.7; }
     .mia-quote-box {
       margin: 60px 0; padding: 55px 40px; background: #fdf5f3; 
       border-radius: 0 50px 0 50px; text-align: center;
-      font-family: 'Playfair Display', serif; font-size: 1.6rem; font-style: italic;
+      font-family: 'Playfair Display', serif; font-size: 1.6rem; font-style: italic; line-height: 1.5;
     }
     .mia-cta {
       background: #1f1f1f; color: #ffffff; padding: 65px 30px;
       text-align: center; margin-top: 90px; border-radius: 15px;
+    }
+    
+    @media (max-width: 768px) {
+      .mia-main { padding-top: 100px !important; }
+      .brand-box { padding: 8px 30px; }
     }
   </style>
 
@@ -94,16 +102,26 @@ async function postToBlogger(blogData) {
   </div>
 
   <script>
+    function killGhosts() {
+        const suspects = ['header-container', 'navbar', 'Attribution1', 'BlogSearch1', 'header-header', 'centered-top-placeholder', 'sticky-header-container'];
+        suspects.forEach(id => {
+            const el = document.getElementById(id) || document.querySelector('.' + id);
+            if (el) el.remove(); 
+        });
+    }
+    killGhosts();
+    setTimeout(killGhosts, 1000);
+
     let lastScrollTop = 0;
     const header = document.getElementById('miaHeader');
     window.addEventListener('scroll', function() {
       let st = window.pageYOffset || document.documentElement.scrollTop;
-      if (Math.abs(lastScrollTop - st) <= 20) return; // Jitter tolerance
+      if (Math.abs(lastScrollTop - st) <= 15) return;
       
       if (st > lastScrollTop && st > 100) {
-        header.classList.add('header-hidden'); // Scrolling Down
+        header.classList.add('header-hidden');
       } else {
-        header.classList.remove('header-hidden'); // Scrolling Up
+        header.classList.remove('header-hidden');
       }
       lastScrollTop = st <= 0 ? 0 : st;
     });
