@@ -1,24 +1,23 @@
-const axios = require("axios");
+const axios = require('axios');
 
-async function getImages(query, count = 3) {
-  try {
-    const res = await axios.get("https://api.pexels.com/v1/search", {
-      params: {
-        query,
-        per_page: count,
-        orientation: "landscape"
-      },
-      headers: {
-        Authorization: process.env.PEXELS_API_KEY
-      }
-    });
+async function getImages(query, count = 1) {
+    try {
+        const response = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=${count}`, {
+            headers: {
+                Authorization: process.env.PEXELS_API_KEY
+            }
+        });
 
-    return res.data.photos.map(photo => photo.src.large);
-
-  } catch (err) {
-    console.error("Pexels image error:", err.message);
-    return [];
-  }
+        if (response.data.photos && response.data.photos.length > 0) {
+            // Return an array of image URLs
+            return response.data.photos.map(photo => photo.src.large2x);
+        }
+        // Fallback image if Pexels finds nothing
+        return ["https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg"];
+    } catch (error) {
+        console.error("Pexels Error:", error.message);
+        return ["https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg"];
+    }
 }
 
 module.exports = { getImages };
