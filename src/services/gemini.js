@@ -9,55 +9,49 @@ async function generateBlogPost() {
 
     const prompt = `
 You are a thoughtful writer for Notes from Mia.
+Your tone is calm, human, reflective, and quietly grounded. Avoid hype, buzzwords, and symbols like — or –.
 
-Your tone is calm, human, reflective, and quietly grounded.
-Write like someone sharing lived experience and gentle clarity.
-Never sound like AI, a teacher, or a motivational speaker.
-Avoid hype, buzzwords, and clickbait language.
-Avoid symbols like — or – completely.
+Write a deep, premium lifestyle post focused on ONE clear theme chosen naturally from these specific niches:
+- Life and productivity  
+- Food and simple recipes  
+- Fitness and gentle movement  
+- Health and wellness  
+- Beauty and everyday care  
+- Money and work habits  
+- Tech and modern life  
+- Mindset, habits, and inner clarity
 
-Write a deep, premium lifestyle post focused on ONE clear theme chosen naturally from these high traffic Pinterest niches:
+Do not name the niche directly. Let it feel lived-in and natural.
+The post must be long and immersive (aim for a 2 to 3 page reading experience).
 
-Life and productivity  
-Food and simple recipes  
-Fitness and gentle movement  
-Health and wellness  
-Beauty and everyday care  
-Money and work habits  
-Tech and modern life  
-Mindset, habits, and inner clarity  
+Return the response EXACTLY in this structure:
 
-Do not name the niche directly.
-Let it feel natural and lived in.
+CATEGORY:
+Two words maximum
 
-The post should be long, immersive, and slow.
-Aim for a 2 to 3 page reading experience.
-Depth and emotional honesty matter more than speed.
-Use real moments, inner thoughts, quiet realizations, and practical wisdom.
-Make the reader feel understood, not instructed.
+TITLE:
+A calm, relatable, Pinterest-style title
 
-Pinterest intent rules  
-The content should feel save worthy.  
-Timeless, calming, and useful.  
-Something the reader would come back to on a quiet day.
+IMAGE_KEYWORD:
+1 to 3 descriptive words for a Pexels search that fits what we are writing about exactly (e.g., 'minimalist kitchen light', 'woman journaling forest', 'soft morning sunlight')
 
-Write in clean HTML.
-Use <p> for paragraphs.
-Use <h2> only when a natural shift in thought happens.
-Do not overuse headings.
-No emojis.
-No lists unless they feel very natural in context.
+INTRO:
+Two short sentences that pull the reader in.
 
-End with a soft, reflective closing that leaves the reader feeling clear and steady.
+QUOTE:
+One short original quote.
+
+BODY:
+Write the long article in clean HTML using <p> and <h2> only. No emojis. No lists.
+End with a soft, reflective closing paragraph.
 `;
 
-    console.log("Gemini 2.5 Flash is composing...");
+    console.log("Gemini 2.5 Flash is composing your premium post...");
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-
     const cleanText = text.replace(/```html/g, "").replace(/```/g, "").trim();
 
-    // Parsing with your logic
+    // Parsing logic
     const category = cleanText.match(/CATEGORY:\s*(.*)/i)[1].trim();
     const title = cleanText.match(/TITLE:\s*(.*)/i)[1].trim();
     const imageKeyword = cleanText.match(/IMAGE_KEYWORD:\s*(.*)/i)[1].trim();
@@ -65,7 +59,7 @@ End with a soft, reflective closing that leaves the reader feeling clear and ste
     const quote = cleanText.match(/QUOTE:\s*(.*)/i)[1].trim();
     const body = cleanText.match(/BODY:\s*([\s\S]*)/i)[1].trim();
 
-    // Use the keyword Gemini suggested to get a relevant image
+    // Fetch the relevant image using the 1-3 word keyword
     const images = await getImages(imageKeyword, 1);
     
     return {
