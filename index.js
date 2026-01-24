@@ -3,8 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const { generateBlogPost } = require('./src/services/gemini'); 
 const { postToBlogger } = require('./src/services/blogger');
+const { sendToTelegram } = require('./src/services/telegram');
 
-// THE 10 TOPICS
+// YOUR 10 TOPICS
 const niches = [
   "Life and productivity",
   "Food and simple recipes",
@@ -13,33 +14,39 @@ const niches = [
   "Beauty and everyday care",
   "Money and work habits",
   "Tech and modern life",
-  "Mindset and habits",
-  "Home decor and slow living",
-  "Travel and inner clarity"
+  "Mindset, habits, and inner clarity",
+  "Home styling and slow living",
+  "Travel and soul growth"
 ];
 
-const statePath = path.join(__dirname, 'src', 'services', 'data', 'state.json');
+const statePath = path.join(__dirname, 'data', 'state.json');
 
 async function runBot() {
     try {
-        // 1. Read current state to see which niche is next
+        // 1. Load state
+        if (!fs.existsSync(statePath)) {
+            if (!fs.existsSync(path.dirname(statePath))) fs.mkdirSync(path.dirname(statePath));
+            fs.writeFileSync(statePath, JSON.stringify({ nextNicheIndex: 0, usedImageUrls: [] }));
+        }
         let state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+
+        // 2. Select the niche
         let currentNiche = niches[state.nextNicheIndex];
+        console.log(`Running Topic ${state.nextNicheIndex + 1}: ${currentNiche}`);
 
-        console.log(`--- Topic ${state.nextNicheIndex + 1} of 10: ${currentNiche} ---`);
-
-        // 2. Generate post for THIS specific niche
+        // 3. Generate content
         const blogData = await generateBlogPost(currentNiche);
 
-        // 3. Post to Blogger
+        // 4. Post to Blogger
         const postUrl = await postToBlogger(blogData);
         console.log("Success! Post live at:", postUrl);
 
-        // 4. Update index for next time (Cycle 0 to 9)
+        // 5. SEND TO TELEGRAM
+        await sendToTelegram(blogData.title, postUrl, blogData.featuredImage);
+
+        // 6. Update state for next run
         state.nextNicheIndex = (state.nextNicheIndex + 1) % niches.length;
         fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
-        
-        console.log(`Next run will be Topic: ${niches[state.nextNicheIndex]}`);
 
     } catch (error) {
         console.error("Bot failed:", error);
