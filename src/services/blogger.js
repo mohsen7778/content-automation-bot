@@ -47,6 +47,7 @@ const finalHtml = `
   </div>    <div class="mia-main">  
     <div class="mia-meta">${blogData.category}</div>  
     <h1 class="mia-title">${blogData.title}</h1>  
+    <div class="mia-image-wrap"><img src="${imageUrl}"></div>  
     <div class="mia-body">  
       <div class="mia-intro">${blogData.intro}</div>  
       ${blogData.body}  
