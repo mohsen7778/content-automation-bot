@@ -1,9 +1,10 @@
-const gemini = require('./src/services/gemini');
-const images = require('./src/services/images');
-const firebase = require('./src/services/firebase');
-const blogger = require('./src/services/blogger');
-const telegram = require('./src/services/telegram');
-const helpers = require('./src/utils/helpers');
+require("dotenv").config();
+
+const gemini = require("./src/services/gemini");
+const images = require("./src/services/images");
+const blogger = require("./src/services/blogger");
+const telegram = require("./src/services/telegram");
+const helpers = require("./src/utils/helpers");
 
 async function startWorkflow() {
     try {
@@ -18,21 +19,32 @@ async function startWorkflow() {
             return;
         }
 
-        console.log("Creating Image...");
-        const imageData = await images.createBlogImage(blogData.title);
+        console.log("Fetching Images...");
+        const imageUrls = await images.getImages(blogData.title, 3);
 
-        console.log("Saving Image...");
-        // NOTE: We pass imageData.filePath here to fix the Error you got
-        const imageUrl = await firebase.uploadFile(imageData.filePath);
+        const imageHTML = imageUrls
+            .map(
+                url =>
+                    `<div class="mia-image-wrap"><img src="${url}" alt="${blogData.title}"></div>`
+            )
+            .join("\n");
+
+        const finalBody = imageHTML + "\n" + blogData.body;
 
         console.log("Posting to Blogger...");
-        const blogLink = await blogger.postToBlogger(blogData, imageUrl);
+        const blogLink = await blogger.postToBlogger(
+            { ...blogData, body: finalBody }
+        );
 
         console.log("Sending to Telegram...");
-        await telegram.sendLocalPhoto(`Done! \n\n${blogLink}`, imageData.filePath);
+        await telegram.sendMessage(`New post published:\n${blogLink}`);
 
         helpers.saveToHistory(blogData.title);
         console.log("Workflow Complete!");
-    } catch (e) { console.error("Workflow failed:", e); }
+
+    } catch (e) {
+        console.error("Workflow failed:", e);
+    }
 }
+
 startWorkflow();
