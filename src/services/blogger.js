@@ -10,7 +10,8 @@ const blogger = google.blogger({ version: 'v3', auth: oauth2Client });
 
 async function postToBlogger(blogData) {
   const finalHtml = `
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- Load Fonts: Added Lora for readable quotes -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&family=Lora:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
 
   <style>
     /* 1. RESET & GHOST KILLER */
@@ -48,7 +49,7 @@ async function postToBlogger(blogData) {
     /* 3. CONTENT LAYOUT - GAP KILLED */
     .mia-main {
       max-width: 760px; 
-      margin: -45px auto 0 !important; /* Pulls content up to close the gap */
+      margin: -45px auto 0 !important; 
       background: #ffffff; 
       padding: 100px 22px 80px !important; 
       position: relative; z-index: 10;
@@ -65,7 +66,7 @@ async function postToBlogger(blogData) {
     .mia-image-wrap { width: 100%; margin-bottom: 40px; }
     .mia-image-wrap img { width: 100%; height: auto !important; border-radius: 12px; display: block; margin: 0 auto; }
     
-    /* 4. TYPOGRAPHY - ADDITIONAL 20% SMALLER */
+    /* 4. TYPOGRAPHY - ELEGANT SMALL SIZE */
     .mia-body { 
       font-size: 0.92rem; 
       line-height: 1.8; 
@@ -75,11 +76,18 @@ async function postToBlogger(blogData) {
       font-size: 1rem; 
       font-weight: 500; margin-bottom: 30px; color: #111; line-height: 1.6; 
     }
+    
+    /* 5. THE QUOTE BOX - NEW READABLE FONT (LORA) */
     .mia-quote-box {
       margin: 45px 0; padding: 40px 30px; background: #fdf5f3; 
       border-radius: 0 40px 0 40px; text-align: center;
-      font-family: 'Playfair Display', serif; font-size: 1.2rem; font-style: italic; line-height: 1.5;
+      font-family: 'Lora', serif; /* Changed from Playfair for readability */
+      font-size: 1.15rem; 
+      font-style: italic; 
+      line-height: 1.6;
+      color: #444;
     }
+
     .mia-cta {
       background: #1f1f1f; color: #ffffff; padding: 55px 30px;
       text-align: center; margin-top: 70px; border-radius: 15px;
