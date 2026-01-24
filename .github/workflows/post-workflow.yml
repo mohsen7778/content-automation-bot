@@ -2,15 +2,14 @@ name: Telegram Blogger Bot
 
 on:
   schedule:
-    - cron: '*/30 * * * *' # Runs every 30 minutes
-  workflow_dispatch:      # Allows the manual "Run" button
+    - cron: '*/30 * * * *' 
+  workflow_dispatch:      
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     permissions:
-      contents: write     # Allows the bot to save images and history back to your repo
+      contents: write     
 
     steps:
       - name: Checkout code
@@ -28,8 +27,7 @@ jobs:
         run: node index.js
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          FIREBASE_BUCKET_NAME: ${{ secrets.FIREBASE_BUCKET_NAME }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
           BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
           BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
@@ -37,13 +35,10 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
-      - name: Save History and Images
+      - name: Save Bot State
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          mkdir -p data public/images
-          if [ ! -f data/history.json ]; then echo "[]" > data/history.json; fi
-          git add data/history.json
-          git add public/images/*.png || echo "No images"
-          git commit -m "Automated update [skip ci]" || echo "Nothing to commit"
+          git add data/state.json
+          git commit -m "Cycle topic and save image history [skip ci]" || echo "No changes"
           git push origin main
