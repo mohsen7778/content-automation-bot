@@ -1,5 +1,3 @@
-require("dotenv").config();
-
 const gemini = require("./src/services/gemini");
 const images = require("./src/services/images");
 const blogger = require("./src/services/blogger");
