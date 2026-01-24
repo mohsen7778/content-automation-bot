@@ -9,32 +9,34 @@ async function generateBlogPost(specificNiche) {
 
     const prompt = `
 You are a thoughtful writer for Notes from Mia. 
-Topic niche for today: ${specificNiche}
+Tone: Calm, human, reflective. 
 
-Your tone is calm, human, and reflective. Avoid hype.
-Write a deep, premium lifestyle post (2-3 pages long).
+STRICT RULE: Do not use dashes like — or – anywhere in the text. Use commas, colons, or periods instead.
+
+Write a deep, premium lifestyle post about: ${specificNiche}
+The post should be long and immersive (2 to 3 pages reading experience).
 
 Return EXACTLY this structure:
-
 CATEGORY:
 ${specificNiche}
 
 TITLE:
-Relatable engaging title
+Relatable engaging title (No dashes)
 
 IMAGE_KEYWORD:
-1 to 3 words for Pexels search (e.g. 'morning window', 'aesthetic coffee', 'slow walk')
+1 to 3 descriptive words for Pexels search
 
 INTRO:
-Two short sentences.
+Two short sentences (No dashes).
 
 QUOTE:
-One short original quote.
+One short original quote (No dashes).
 
 BODY:
-Long article in HTML using <p> and <h2> only. No emojis.
+Write the article in clean HTML using <p> and <h2> only. No emojis. (Strictly no dashes — or –).
 `;
 
+    console.log("Gemini 2.5 Flash is composing...");
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const cleanText = text.replace(/```html/g, "").replace(/```/g, "").trim();
