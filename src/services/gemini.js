@@ -1,4 +1,6 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { getImages } = require("./images");
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function generateBlogPost() {
@@ -7,7 +9,7 @@ async function generateBlogPost() {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
-You are a thoughtful lifestyle writer creating content for a modern audience on Pinterest.
+You are a thoughtful writer creating content for a modern audience on Pinterest.
 
 Your writing feels human, calm, reflective, and real.
 It should sound like someone who has lived life and is quietly sharing what they learned.
@@ -61,19 +63,40 @@ End with a grounded, reflective closing paragraph that leaves the reader feeling
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
+    // Clean markdown if any
     const cleanText = text.replace(/```html/g, "").replace(/```/g, "").trim();
 
+    // Parse response
     const category = cleanText.match(/CATEGORY:\s*(.*)/i)[1].trim();
     const title = cleanText.match(/TITLE:\s*(.*)/i)[1].trim();
     const intro = cleanText.match(/INTRO:\s*(.*)/i)[1].trim();
     const quote = cleanText.match(/QUOTE:\s*(.*)/i)[1].trim();
     const body = cleanText.match(/BODY:\s*([\s\S]*)/i)[1].trim();
 
-    console.log("Gemini 2.5 wrote: " + title);
-    return { category, title, intro, quote, body };
+    // 🔥 FETCH IMAGES FROM PEXELS
+    const images = await getImages(title, 3);
+
+    const imageHTML = images
+      .map(
+        url =>
+          `<div class="mia-image-wrap"><img src="${url}" alt="${title}"></div>`
+      )
+      .join("\n");
+
+    const finalBody = imageHTML + "\n" + body;
+
+    console.log("Gemini 2.5 wrote:", title);
+
+    return {
+      category,
+      title,
+      intro,
+      quote,
+      body: finalBody
+    };
 
   } catch (error) {
-    console.error("Gemini 2.5 Error:", error.message);
+    console.error("Gemini Error:", error.message);
     throw error;
   }
 }
