@@ -1,25 +1,23 @@
-// index.js
 require('dotenv').config();
-const { generateContent } = require('./src/services/ai'); // Assuming your AI file has this function
+const { generateBlogData } = require('./src/services/ai'); 
 const { getPexelsImage } = require('./src/services/pexels');
 const { postToBlogger } = require('./src/services/blogger');
 
 async function runBot() {
     try {
-        console.log("Step 1: Generating content with AI...");
-        // This should return { title, category, intro, body, quote }
-        const blogData = await generateContent(); 
+        console.log("1. Generating AI Content...");
+        const blogData = await generateBlogData();
 
-        console.log(`Step 2: Searching Pexels for: ${blogData.category}...`);
-        // We use the category (e.g., 'Fitness' or 'Recipe') to find the image
-        const freshImageUrl = await getPexelsImage(blogData.category);
+        console.log(`2. Fetching fresh image for: ${blogData.category || 'nature'}...`);
+        const imageUrl = await getPexelsImage(blogData.category || blogData.title);
 
-        console.log("Step 3: Posting to Blogger...");
-        const postUrl = await postToBlogger(blogData, freshImageUrl);
+        console.log("3. Posting to Blogger...");
+        const postUrl = await postToBlogger(blogData, imageUrl);
 
-        console.log("Done! Post created successfully at:", postUrl);
+        console.log("Success! Post live at:", postUrl);
     } catch (error) {
-        console.error("Bot failed at some point:", error);
+        console.error("Bot failed:", error);
+        process.exit(1);
     }
 }
 
