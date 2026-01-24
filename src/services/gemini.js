@@ -3,7 +3,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function generateBlogPost() {
   try {
-    // UPDATED: Using the powerful new gemini-2.5-flash model
+    // Using gemini-2.5-flash
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
@@ -55,15 +55,14 @@ No lists unless they feel very natural in context.
 Flow like a personal journal mixed with clarity.
 
 End with a grounded, reflective closing paragraph that leaves the reader feeling clear and steady.
+`;
 
     console.log("Requesting premium content from Gemini 2.5 Flash...");
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
-    // Clean up any markdown code blocks the AI might add
     const cleanText = text.replace(/```html/g, "").replace(/```/g, "").trim();
 
-    // Parsing using your Regex logic
     const category = cleanText.match(/CATEGORY:\s*(.*)/i)[1].trim();
     const title = cleanText.match(/TITLE:\s*(.*)/i)[1].trim();
     const intro = cleanText.match(/INTRO:\s*(.*)/i)[1].trim();
