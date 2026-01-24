@@ -10,18 +10,21 @@ const blogger = google.blogger({ version: 'v3', auth: oauth2Client });
 
 async function postToBlogger(blogData) {
   const finalHtml = `
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
   <style>
-    /* RESET & GHOST KILLER */
+    /* 1. RESET & GHOST KILLER */
     html, body, .main-inner, .column-center-inner, .content-inner, 
     .post-outer, .post-body, .entry-content, #main-wrapper, .main-outer {
       background: #ffffff !important; margin: 0 !important; padding: 0 !important; border: none !important;
     }
     #navbar, .navbar, .attribution, #Attribution1, .footer-outer, #footer-wrapper, 
-    .status-msg-wrap, .comments, .mobile-nav, .sticky-header, #header-container {
-      display: none !important; visibility: hidden !important; height: 0 !important;
+    .status-msg-wrap, .comments, .mobile-nav, .sticky-header, #header-container,
+    .footer-cap-back, .cap-bottom, .blog-feeds, .post-feeds, #footer-cap {
+      display: none !important; visibility: hidden !important; height: 0 !important; opacity: 0 !important; position: absolute !important; bottom: -2000px !important;
     }
 
-    /* THE HEADER */
+    /* 2. THE BRAND HEADER */
     .mia-header-area {
       position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;
       width: 100% !important; height: 85px !important; display: flex !important;
@@ -38,45 +41,48 @@ async function postToBlogger(blogData) {
       background: white; position: relative;
     }
     .brand-box span {
-      font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700;
+      font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700;
       letter-spacing: 4px; text-transform: uppercase; color: #1f1f1f;
     }
 
-    /* CONTENT LAYOUT - FIXED SPACING */
+    /* 3. CONTENT LAYOUT - GAP KILLED */
     .mia-main {
       max-width: 760px; 
-      margin: 0 auto !important; 
+      margin: -45px auto 0 !important; /* Pulls content up to close the gap */
       background: #ffffff; 
-      padding: 110px 22px 100px !important; /* Reduced from 125px to fix the gap */
-      position: relative; 
-      z-index: 10;
+      padding: 100px 22px 80px !important; 
+      position: relative; z-index: 10;
+      font-family: 'Inter', sans-serif;
     }
     .mia-meta {
-      text-align: center; font-size: 0.76rem; letter-spacing: 3px;
-      text-transform: uppercase; color: #b08a5c; margin-bottom: 12px !important; font-weight: 600;
+      text-align: center; font-size: 0.65rem; letter-spacing: 3px;
+      text-transform: uppercase; color: #b08a5c; margin-bottom: 10px !important; font-weight: 600;
     }
     .mia-title {
-      font-family: 'Playfair Display', serif; font-size: clamp(2.1rem, 6vw, 3.2rem);
-      text-align: center; line-height: 1.25; margin: 0 0 45px !important; color: #000;
+      font-family: 'Playfair Display', serif; font-size: clamp(1.7rem, 5vw, 2.4rem);
+      text-align: center; line-height: 1.2; margin: 0 0 35px !important; color: #000;
     }
-    .mia-image-wrap { width: 100%; margin-bottom: 50px; }
-    .mia-image-wrap img { width: 100%; height: auto !important; border-radius: 15px; display: block; margin: 0 auto; }
+    .mia-image-wrap { width: 100%; margin-bottom: 40px; }
+    .mia-image-wrap img { width: 100%; height: auto !important; border-radius: 12px; display: block; margin: 0 auto; }
     
-    .mia-body { font-size: 1.28rem; line-height: 1.95; color: #222; }
-    .mia-intro { font-size: 1.4rem; font-weight: 500; margin-bottom: 35px; color: #111; line-height: 1.7; }
+    /* 4. TYPOGRAPHY - ADDITIONAL 20% SMALLER */
+    .mia-body { 
+      font-size: 0.92rem; 
+      line-height: 1.8; 
+      color: #333; 
+    }
+    .mia-intro { 
+      font-size: 1rem; 
+      font-weight: 500; margin-bottom: 30px; color: #111; line-height: 1.6; 
+    }
     .mia-quote-box {
-      margin: 60px 0; padding: 55px 40px; background: #fdf5f3; 
-      border-radius: 0 50px 0 50px; text-align: center;
-      font-family: 'Playfair Display', serif; font-size: 1.6rem; font-style: italic; line-height: 1.5;
+      margin: 45px 0; padding: 40px 30px; background: #fdf5f3; 
+      border-radius: 0 40px 0 40px; text-align: center;
+      font-family: 'Playfair Display', serif; font-size: 1.2rem; font-style: italic; line-height: 1.5;
     }
     .mia-cta {
-      background: #1f1f1f; color: #ffffff; padding: 65px 30px;
-      text-align: center; margin-top: 90px; border-radius: 15px;
-    }
-    
-    @media (max-width: 768px) {
-      .mia-main { padding-top: 100px !important; }
-      .brand-box { padding: 8px 30px; }
+      background: #1f1f1f; color: #ffffff; padding: 55px 30px;
+      text-align: center; margin-top: 70px; border-radius: 15px;
     }
   </style>
 
@@ -96,14 +102,14 @@ async function postToBlogger(blogData) {
       <div class="mia-quote-box">"${blogData.quote}"</div>
     </div>
     <div class="mia-cta">
-      <h3 style="color:#fff; font-family:'Playfair Display', serif;">Prioritize your peace today.</h3>
-      <p style="opacity:0.8;">Thank you for reading. Until next time, Mia.</p>
+      <h3 style="color:#fff; font-family:'Playfair Display', serif; margin-bottom:8px; font-size:1.2rem;">Prioritize your peace today.</h3>
+      <p style="opacity:0.8; font-size:0.85rem;">Thank you for reading. Until next time, Mia.</p>
     </div>
   </div>
 
   <script>
     function killGhosts() {
-        const suspects = ['header-container', 'navbar', 'Attribution1', 'BlogSearch1', 'header-header', 'centered-top-placeholder', 'sticky-header-container'];
+        const suspects = ['header-container', 'navbar', 'Attribution1', 'BlogSearch1', 'header-header', 'centered-top-placeholder', 'sticky-header-container', 'footer-outer', 'footer-wrapper'];
         suspects.forEach(id => {
             const el = document.getElementById(id) || document.querySelector('.' + id);
             if (el) el.remove(); 
@@ -117,12 +123,8 @@ async function postToBlogger(blogData) {
     window.addEventListener('scroll', function() {
       let st = window.pageYOffset || document.documentElement.scrollTop;
       if (Math.abs(lastScrollTop - st) <= 15) return;
-      
-      if (st > lastScrollTop && st > 100) {
-        header.classList.add('header-hidden');
-      } else {
-        header.classList.remove('header-hidden');
-      }
+      if (st > lastScrollTop && st > 100) { header.classList.add('header-hidden'); } 
+      else { header.classList.remove('header-hidden'); }
       lastScrollTop = st <= 0 ? 0 : st;
     });
   </script>
