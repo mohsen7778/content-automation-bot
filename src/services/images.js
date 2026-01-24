@@ -2,7 +2,7 @@ const axios = require('axios');
 
 async function getImages(query, count = 1) {
     try {
-        const response = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=${count}`, {
+        const response = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=${count}&orientation=landscape`, {
             headers: {
                 Authorization: process.env.PEXELS_API_KEY
             }
