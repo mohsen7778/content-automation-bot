@@ -6,46 +6,40 @@ async function generateContent(specificNiche) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // We ask for a specific separator (|||) to make parsing 100% fail-proof
+    // We use a custom separator "|||" to reliably split the sections
     const prompt = `
-    Write a premium blog post about: ${specificNiche}
+    You are a thoughtful writer for Notes from Mia.
+    Topic: ${specificNiche}
     
     STRICT OUTPUT FORMAT:
-    You must separate the Title, Image Keyword, and HTML Body with "|||".
+    Separate these 6 sections with "|||" exactly.
     
     Structure:
-    TITLE ||| IMAGE_KEYWORD ||| HTML_BODY
-    
-    Example:
-    Morning Routine ||| Sunrise ||| <p>This is the post...</p>
+    CATEGORY ||| TITLE ||| INTRO (2 sentences) ||| QUOTE (1 sentence) ||| IMAGE_KEYWORD ||| HTML_BODY
     
     Rules:
-    1. No markdown (no ** or ##).
-    2. No labels (Do not write "Title:").
-    3. Use <p> and <h2> tags for the body.
+    - No dashes in the title.
+    - Body must use <p> and <h2> only. No markdown.
+    - Category should be short (e.g., "Mindfulness").
     `;
 
-    console.log("Gemini 2.5 Flash is composing...");
+    console.log("Gemini is composing...");
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     
-    // Split the text by our special separator
     const parts = text.split("|||");
 
-    // Safety Check: If AI misses the format, fallback instead of crashing
-    if (parts.length < 3) {
-        console.log("Format warning, using fallback parsing.");
-        return {
-            title: "New Blog Post",
-            imagePrompt: "lifestyle",
-            htmlContent: text // Dump the raw text so you don't lose the content
-        };
+    if (parts.length < 6) {
+        throw new Error("Gemini generation failed formatting.");
     }
 
     return { 
-        title: parts[0].trim(), 
-        imagePrompt: parts[1].trim(), 
-        htmlContent: parts[2].trim() 
+        category: parts[0].trim(),
+        title: parts[1].trim(), 
+        intro: parts[2].trim(),
+        quote: parts[3].trim(),
+        imagePrompt: parts[4].trim(), 
+        body: parts[5].trim() 
     };
 
   } catch (error) {
