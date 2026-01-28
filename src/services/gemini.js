@@ -7,31 +7,78 @@ async function generateContent(specificNiche) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
-    Topic: ${specificNiche}
-    
-    STRICT OUTPUT FORMAT:
-    You must provide 6 sections separated by exactly "|||".
-    
-    Order:
-    CATEGORY ||| TITLE ||| INTRO ||| QUOTE ||| IMAGE_KEYWORD ||| HTML_BODY
-    
-    PROMPT RULES:
-    - NO GREETINGS: Do not say hello, welcome, or introduce the post. Start directly.
-    - Write 2 to 3 full pages.
-    - Tone: warm, human, reflective, slightly opinionated. Sound like a real person thinking while writing.
-    - POV: first person allowed. Talk directly to the reader using you and I.
-    - Language: simple everyday words. No buzzwords, no marketing language, no hype.
-    - STRICT: Do not use - & — (Use commas or colons instead).
-    - Sentence style: mix very short and medium sentences. Some informal flow is required.
-    - Structure: avoid list heavy writing. Write like a blog, not documentation.
-    - Rhythm rules: Avoid polished or perfect grammar everywhere. It is okay to start sentences with and or but. Avoid repetitive sentence patterns.
-    - BANNED PHRASES: dive into, unlock, leverage, game changing, at its core, in today’s world, powerful tool, comprehensive guide.
-    - Specificity: use concrete examples, grounded explanations, and real sounding thoughts. Avoid vague claims like experts say.
-    - Emotion: include subtle emotion, reflection, and human judgment. Neutral robotic tone is not allowed.
-    - HTML: Use ONLY <p> and <h2> tags. No markdown symbols like ** or ##.
-    - Quote: Do not include quotation marks in the text.
-    - Output ONLY the 6 sections separated by |||.
-    `;
+Topic: ${specificNiche}
+
+STRICT OUTPUT FORMAT:
+You must provide 6 sections separated by exactly "|||".
+
+Order:
+CATEGORY ||| TITLE ||| INTRO ||| QUOTE ||| IMAGE_KEYWORD ||| HTML_BODY
+
+ABSOLUTE RULES:
+- Output ONLY the 6 sections separated by |||.
+- Do not add labels, explanations, or extra text.
+- No greetings. Start directly.
+- Write 2 to 3 full pages total.
+- Do NOT summarize at the end. Never use conclusion, summary, overall, or ultimately.
+- End the body on a punchy unresolved thought or a specific call to action.
+
+VOICE AND POV:
+- Write like a tired, opinionated human, not a helpful assistant.
+- First person is allowed. Use I and we naturally.
+- Be slightly skeptical, reflective, or mildly annoyed.
+- Neutral, polite, or balanced tone is banned.
+
+LANGUAGE:
+- Use simple, everyday words only.
+- No buzzwords. No marketing tone. No hype.
+- STRICT: Do not use hyphens or em dashes anywhere. Use commas or colons instead.
+- Do not use quotation marks anywhere in the output.
+- Avoid passive voice.
+- No moralizing.
+
+BANNED WORDS AND PHRASES:
+delve, tapestry, unleash, unlock, navigate, landscape, game changer, game changing, transformative, leverage, in today’s world, in today’s digital age, paradigm shift, crucial, testament, myriad, in conclusion, it is important to note, remember that, ultimately, bustling.
+
+STYLE AND RHYTHM:
+- Write like a person thinking on the page.
+- Mix very short sentences with longer ones.
+- It is okay to start sentences with and or but.
+- Avoid repetitive or symmetrical sentence patterns.
+- Avoid list heavy structure. Write like a blog, not documentation.
+
+HUMAN SIGNALS (REQUIRED):
+- Include at least one parenthetical aside where you second guess or rephrase yourself, for example
+  (Actually, now that I think about it, that’s not entirely true)
+  or
+  (Wait, let me rephrase that)
+- Interrupt the flow once to address a skeptical reader directly.
+- Weave in at least three hyper specific mundane details, such as a minor annoyance, a broken object, a ruined moment, or a specific price. Use them naturally as metaphors or side notes.
+
+OPENING RULE:
+- Start the INTRO in the middle of a thought.
+- The first word must be So, or And, followed by a confession or frustration.
+- Do not clearly introduce the topic until later in the INTRO.
+
+STRUCTURE:
+- HTML_BODY must use ONLY <p> and <h2> tags.
+- No markdown. No symbols like ** or ##.
+- Visual pacing is required: alternate longer paragraphs with single sentence paragraphs.
+- Slight visual choppiness is intentional.
+
+QUOTE SECTION:
+- Write one short reflective sentence.
+- Do not use quotation marks.
+
+ANTI AI BEHAVIOR:
+- Do not sound helpful, optimized, or instructional.
+- Do not explain anything to the reader.
+- Never mention AI.
+- One natural pass only. No polishing language.
+
+REMEMBER:
+You are writing for humans, not detectors.
+`;
 
     console.log("Gemini is composing...");
     const result = await model.generateContent(prompt);
