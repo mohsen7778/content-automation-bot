@@ -4,67 +4,84 @@ const cloudinary = require('cloudinary').v2;
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
 });
 
-async function getImages(query, count = 1) {
+// Helper: split text into lines so it fits on the image
+function splitText(text, maxCharsPerLine = 20) {
+    const words = text.split(' ');
+    let lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+        if (currentLine.length + 1 + words[i].length <= maxCharsPerLine) {
+            currentLine += " " + words[i];
+        } else {
+            lines.push(currentLine);
+            currentLine = words[i];
+        }
+    }
+    lines.push(currentLine);
+    return lines.join("%0A"); // Encoded newline
+}
+
+async function getImages(query, titleForOverlay) {
     try {
         console.log(`Searching Pexels for: ${query}`);
+        const randomPage = Math.floor(Math.random() * 50) + 1;
 
-        // 1. GENERATE RANDOMNESS (Replaces the need for history file)
-        // Search a random page between 1 and 100 to find unique images
-        const randomPage = Math.floor(Math.random() * 100) + 1;
-
-        const response = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=10&orientation=landscape&page=${randomPage}`, {
+        // 1. GET BLOGGER IMAGE (Horizontal, Raw, Just Resized via URL)
+        const blogResp = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=landscape&page=${randomPage}`, {
             headers: { Authorization: process.env.PEXELS_API_KEY }
         });
+        
+        // Add Pexels resize parameters for 1200x630
+        const rawUrl = blogResp.data.photos[0]?.src?.original;
+        const bloggerImage = `${rawUrl}?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop`;
 
-        const photos = response.data.photos;
+        // 2. GET PINTEREST IMAGE (Vertical, for editing)
+        const pinResp = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=portrait&page=${randomPage}`, {
+            headers: { Authorization: process.env.PEXELS_API_KEY }
+        });
+        
+        const pinRawUrl = pinResp.data.photos[0]?.src?.large2x;
 
-        // Backup: If random page is empty, go back to Page 1
-        if (!photos || photos.length === 0) {
-            console.log("Random page empty, using Page 1...");
-            const backup = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=10&orientation=landscape`, {
-                headers: { Authorization: process.env.PEXELS_API_KEY }
-            });
-            photos.push(...backup.data.photos);
-        }
+        // 3. EDIT PINTEREST IMAGE IN CLOUDINARY (Text Overlay)
+        console.log("Creating Pinterest Design...");
+        const upload = await cloudinary.uploader.upload(pinRawUrl, { folder: "pinterest-designs" });
+        
+        // Clean the title for the overlay (shorten if needed)
+        const cleanTitle = titleForOverlay.replace(/[:|]/g, "").split(" ").slice(0, 8).join(" "); 
+        const formattedTitle = splitText(cleanTitle);
 
-        if (!photos || photos.length === 0) throw new Error("No photos found on Pexels.");
-
-        // Pick a random image from the 10 results
-        const randomImageIndex = Math.floor(Math.random() * photos.length);
-        const selectedPexelsUrl = photos[randomImageIndex].src.large2x;
-
-        console.log("Processing image with Cloudinary...");
-
-        // 2. UPLOAD TO CLOUDINARY
-        const uploadResult = await cloudinary.uploader.upload(selectedPexelsUrl, {
-            folder: "mia-blog-images",
+        const pinterestImage = cloudinary.url(upload.public_id, {
+            transformation: [
+                { width: 1000, height: 1500, crop: "fill", gravity: "auto" }, // Vertical Crop
+                { effect: "brightness:-40" }, // Darken slightly so text pops
+                {
+                    overlay: {
+                        font_family: "Arial",
+                        font_size: 80,
+                        font_weight: "bold",
+                        text_align: "center",
+                        text: formattedTitle
+                    },
+                    color: "#FFFFFF",
+                    width: 900, // Text box width
+                    crop: "fit"
+                }
+            ]
         });
 
-        // 3. APPLY SMART CROP (No Add-ons Required)
-        // This ensures the image is 1200x630 and centered on the subject
-        const finalUrl = cloudinary.url(uploadResult.public_id, {
-            width: 1200,
-            height: 630,
-            crop: "fill",
-            gravity: "auto",  // AI Auto-Focus
-            effect: "enhance", // Auto-Color
-            quality: "auto",
-            fetch_format: "auto"
-        });
-
-        console.log("Image Ready:", finalUrl);
-        return [finalUrl];
+        return { bloggerImage, pinterestImage };
 
     } catch (error) {
-        // IF YOU SEE THIS LOG IN GITHUB, IT MEANS API KEYS ARE WRONG
-        console.error("CRITICAL ERROR:", error.message);
-        if (error.response) console.error("API Response:", error.response.data);
-        
-        // Return fallback only if real crash happens
-        return ["https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg"];
+        console.error("Image Error:", error.message);
+        return { 
+            bloggerImage: "https://images.pexels.com/photos/262508/pexels-photo-262508.jpeg?w=1200&h=630&fit=crop",
+            pinterestImage: null
+        };
     }
 }
 
