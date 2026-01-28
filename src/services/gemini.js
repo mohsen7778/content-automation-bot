@@ -18,9 +18,10 @@ async function generateContent(specificNiche) {
     CATEGORY ||| TITLE ||| INTRO (2 sentences) ||| QUOTE (1 sentence) ||| IMAGE_KEYWORD ||| HTML_BODY
     
     Rules:
-    - No dashes in the title.
+    - write 2 full pages or 3 human like not like ai
+    - No — or -
     - Body must use <p> and <h2> only. No markdown.
-    - Category should be short (e.g., "Mindfulness").
+    - Category should be short (e.g., Mindfulness).
     `;
 
     console.log("Gemini is composing...");
