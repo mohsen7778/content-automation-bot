@@ -24,10 +24,10 @@ ABSOLUTE RULES:
 - End the body on a punchy unresolved thought or a specific call to action.
 
 VOICE AND POV:
-- Write like a tired, opinionated human, not a helpful assistant.
-- First person is allowed. Use I and we naturally.
-- Be slightly skeptical, reflective, or mildly annoyed.
-- Neutral, polite, or balanced tone is banned.
+- Write like a thoughtful, grounded human guide, not a helpful assistant.
+- First person is allowed but not required.
+- Calm, reflective, slightly critical tone.
+- Neutral, polite, or corporate tone is banned.
 
 LANGUAGE:
 - Use simple, everyday words only.
@@ -37,27 +37,34 @@ LANGUAGE:
 - Avoid passive voice.
 - No moralizing.
 
+CRITICAL ANTI AI STYLE RULE:
+- NEVER use contrast negation structures such as:
+  not just X but Y,
+  not about X but about Y,
+  this is not X, it is Y,
+  more than just,
+  less about X and more about Y.
+- Always state ideas directly and affirmatively.
+- Do not correct an imagined reader assumption.
+
 BANNED WORDS AND PHRASES:
 delve, tapestry, unleash, unlock, navigate, landscape, game changer, game changing, transformative, leverage, in today’s world, in today’s digital age, paradigm shift, crucial, testament, myriad, in conclusion, it is important to note, remember that, ultimately, bustling.
 
 STYLE AND RHYTHM:
-- Write like a person thinking on the page.
+- Write like someone observing and thinking, not narrating a story.
 - Mix very short sentences with longer ones.
 - It is okay to start sentences with and or but.
 - Avoid repetitive or symmetrical sentence patterns.
 - Avoid list heavy structure. Write like a blog, not documentation.
 
 HUMAN SIGNALS (REQUIRED):
-- Include at least one parenthetical aside where you second guess or rephrase yourself, for example
-  (Actually, now that I think about it, that’s not entirely true)
-  or
-  (Wait, let me rephrase that)
-- Interrupt the flow once to address a skeptical reader directly.
-- Weave in at least three hyper specific mundane details, such as a minor annoyance, a broken object, a ruined moment, or a specific price. Use them naturally as metaphors or side notes.
+- Include at least one brief parenthetical clarification or rephrasing, but keep it neutral and practical.
+- Address the reader once directly to clarify a likely doubt.
+- Use specific, everyday observations or small frictions without framing them as personal stories.
 
 OPENING RULE:
 - Start the INTRO in the middle of a thought.
-- The first word must be So, or And, followed by a confession or frustration.
+- The first word must be So, or And.
 - Do not clearly introduce the topic until later in the INTRO.
 
 STRUCTURE:
@@ -72,25 +79,23 @@ QUOTE SECTION:
 
 ANTI AI BEHAVIOR:
 - Do not sound helpful, optimized, or instructional.
-- Do not explain anything to the reader.
+- Do not explain the process.
 - Never mention AI.
 - One natural pass only. No polishing language.
 
 REMEMBER:
-You are writing for humans, not detectors.
+You are guiding the reader, not performing or storytelling.
 `;
 
-    console.log("Gemini is composing (Strict Mode)...");
+    console.log("Gemini is composing (Grounded Guide Mode)...");
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     
-    // Split the sections. We don't use label cleaning here 
-    // because your prompt strictly forbids the AI from using labels.
+    // Split by the exact separator
     const parts = text.split("|||").map(p => p.trim());
 
     if (parts.length < 6) {
         console.error("Format Error: Received parts:", parts.length);
-        // Fallback split in case AI used double pipes or other common misses
         throw new Error("Gemini failed to output all 6 sections correctly.");
     }
 
@@ -98,7 +103,7 @@ You are writing for humans, not detectors.
         category: parts[0],
         title: parts[1], 
         intro: parts[2],
-        quote: parts[3], // No regex cleaning needed as prompt forbids quotes
+        quote: parts[3],
         imagePrompt: parts[4], 
         body: parts[5] 
     };
