@@ -15,7 +15,10 @@ async function getImages(query, count = 1) {
     try {
         console.log(`Searching Pexels for: ${query}`);
         
-        const response = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=15&orientation=landscape`, {
+        // FIX: Randomize the page number (1 to 50) to get different images every time
+        const randomPage = Math.floor(Math.random() * 50) + 1;
+
+        const response = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=15&orientation=landscape&page=${randomPage}`, {
             headers: { Authorization: process.env.PEXELS_API_KEY }
         });
 
@@ -23,10 +26,19 @@ async function getImages(query, count = 1) {
         const photos = response.data.photos;
 
         if (!photos || photos.length === 0) {
-            throw new Error("No photos found on Pexels.");
+            // If random page is empty, try page 1 as backup
+            console.log("Random page empty, trying page 1...");
+            const backup = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=15&orientation=landscape`, {
+                 headers: { Authorization: process.env.PEXELS_API_KEY }
+            });
+            photos.push(...backup.data.photos);
         }
+        
+        if (!photos || photos.length === 0) throw new Error("No photos found.");
 
         let selectedPexelsUrl = photos[0].src.large2x;
+        
+        // Try to find one we haven't used
         for (let photo of photos) {
             if (!state.usedImageUrls.includes(photo.src.large2x)) {
                 selectedPexelsUrl = photo.src.large2x;
@@ -34,32 +46,29 @@ async function getImages(query, count = 1) {
             }
         }
 
-        console.log("Processing image with Cloudinary (Gen Fill)...");
+        console.log("Processing image with Cloudinary...");
 
         // 1. Upload
         const uploadResult = await cloudinary.uploader.upload(selectedPexelsUrl, {
             folder: "mia-blog-images",
         });
 
-        // 2. FORCE AI GENERATION
-        // This keeps the image clean (no text) but uses AI to extend the background (pad)
-        // and enhance the colors.
+        // 2. FORCE AI GENERATION (Wait for it)
         const explicitResult = await cloudinary.uploader.explicit(uploadResult.public_id, {
             type: "upload",
             eager: [
                 {
                     width: 1200,
                     height: 630,
-                    crop: "pad",            // Don't cut content
-                    background: "gen_fill", // AI paints the edges
-                    effect: "enhance"       // AI Color/Lighting fix
+                    crop: "pad",            
+                    background: "gen_fill", 
+                    effect: "enhance"       
                 }
             ],
-            eager_async: false // WAIT for the AI to finish
+            eager_async: false 
         });
 
         const finalUrl = explicitResult.eager[0].secure_url;
-
         console.log("AI Image Ready:", finalUrl);
 
         state.usedImageUrls.push(selectedPexelsUrl);
