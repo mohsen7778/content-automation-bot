@@ -20,6 +20,7 @@ async function generateContent(specificNiche) {
     - Write 2 to 3 full pages. Use a warm, human, reflective tone.
     - STRICT: Do not use dashes (— or -) anywhere. Use commas or colons.
     - Body: Use ONLY <p> and <h2> tags. No markdown like ** or ##.
+    - Quote: Do not include quotation marks in the text.
     - Output only the requested sections.
     `;
 
@@ -27,7 +28,7 @@ async function generateContent(specificNiche) {
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     
-    // Split and clean labels if AI accidentally includes them (e.g., "TITLE: ...")
+    // Split and clean labels if AI accidentally includes them
     const parts = text.split("|||").map(p => p.replace(/^(CATEGORY|TITLE|INTRO|QUOTE|IMAGE_KEYWORD|HTML_BODY|BODY):\s*/i, "").trim());
 
     if (parts.length < 6) {
@@ -39,7 +40,8 @@ async function generateContent(specificNiche) {
         category: parts[0],
         title: parts[1], 
         intro: parts[2],
-        quote: parts[3],
+        // This regex removes " or ' from the beginning or end of the quote
+        quote: parts[3].replace(/^["']|["']$/g, ""),
         imagePrompt: parts[4], 
         body: parts[5] 
     };
