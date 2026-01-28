@@ -15,30 +15,29 @@ async function getImages(query, count = 1) {
     try {
         console.log(`Searching Pexels for: ${query}`);
         
-        // FIX: Randomize the page number (1 to 50) to get different images every time
+        // 1. RANDOMIZE SEARCH (Fixes "Same Image" issue)
+        // We search a random page between 1 and 50
         const randomPage = Math.floor(Math.random() * 50) + 1;
-
+        
         const response = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=15&orientation=landscape&page=${randomPage}`, {
             headers: { Authorization: process.env.PEXELS_API_KEY }
         });
 
-        const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
         const photos = response.data.photos;
 
         if (!photos || photos.length === 0) {
-            // If random page is empty, try page 1 as backup
-            console.log("Random page empty, trying page 1...");
-            const backup = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=15&orientation=landscape`, {
-                 headers: { Authorization: process.env.PEXELS_API_KEY }
+            console.log("Random page empty, retrying page 1...");
+            const retry = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=15&orientation=landscape`, {
+                headers: { Authorization: process.env.PEXELS_API_KEY }
             });
-            photos.push(...backup.data.photos);
+            if (!retry.data.photos.length) throw new Error("No photos found.");
+            photos.push(...retry.data.photos);
         }
-        
-        if (!photos || photos.length === 0) throw new Error("No photos found.");
 
-        let selectedPexelsUrl = photos[0].src.large2x;
+        const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
         
-        // Try to find one we haven't used
+        // Select a fresh image
+        let selectedPexelsUrl = photos[0].src.large2x;
         for (let photo of photos) {
             if (!state.usedImageUrls.includes(photo.src.large2x)) {
                 selectedPexelsUrl = photo.src.large2x;
@@ -48,28 +47,25 @@ async function getImages(query, count = 1) {
 
         console.log("Processing image with Cloudinary...");
 
-        // 1. Upload
+        // 2. Upload to Cloudinary
         const uploadResult = await cloudinary.uploader.upload(selectedPexelsUrl, {
             folder: "mia-blog-images",
         });
 
-        // 2. FORCE AI GENERATION (Wait for it)
-        const explicitResult = await cloudinary.uploader.explicit(uploadResult.public_id, {
-            type: "upload",
-            eager: [
-                {
-                    width: 1200,
-                    height: 630,
-                    crop: "pad",            
-                    background: "gen_fill", 
-                    effect: "enhance"       
-                }
-            ],
-            eager_async: false 
+        // 3. GENERATE SMART URL (No Crash Risk)
+        // g_auto: AI finds the face/pet and keeps it centered.
+        // c_fill: Fills the 1200x630 box perfectly.
+        const finalUrl = cloudinary.url(uploadResult.public_id, {
+            width: 1200,
+            height: 630,
+            crop: "fill",    // Standard Crop
+            gravity: "auto", // AI Focus (Keeps subject in view)
+            effect: "enhance", // Auto-Color correction
+            quality: "auto",
+            fetch_format: "auto"
         });
 
-        const finalUrl = explicitResult.eager[0].secure_url;
-        console.log("AI Image Ready:", finalUrl);
+        console.log("Image Ready:", finalUrl);
 
         state.usedImageUrls.push(selectedPexelsUrl);
         if (state.usedImageUrls.length > 100) state.usedImageUrls.shift();
@@ -79,6 +75,7 @@ async function getImages(query, count = 1) {
 
     } catch (error) {
         console.error("Image Service Error:", error.message);
+        // If this fallback appears, check the GitHub Action logs for the specific error message
         return ["https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg"];
     }
 }
