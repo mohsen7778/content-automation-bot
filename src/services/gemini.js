@@ -1,61 +1,62 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { getImages } = require("./images");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-async function generateBlogPost(specificNiche) {
+// Renamed to match index.js
+async function generateContent(specificNiche) { 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // 1.5 is standard, 2.5 isn't public yet
 
     const prompt = `
-You are a thoughtful writer for Notes from Mia. 
-Tone: Calm, human, reflective. 
+    You are a thoughtful writer for Notes from Mia. 
+    Tone: Calm, human, reflective. 
 
-STRICT RULE: Do not use dashes like — or – anywhere in the text. Use commas, colons, or periods instead.
+    STRICT RULE: Do not use dashes like — or – anywhere in the text. Use commas, colons, or periods instead.
 
-Write a deep, premium lifestyle post about: ${specificNiche}
-The post should be long and immersive (2 to 3 pages reading experience).
+    Write a deep, premium lifestyle post about: ${specificNiche}
+    The post should be long and immersive (2 to 3 pages reading experience).
 
-Return EXACTLY this structure:
-CATEGORY:
-${specificNiche}
+    Return EXACTLY this structure:
+    CATEGORY:
+    ${specificNiche}
 
-TITLE:
-Relatable engaging title (No dashes)
+    TITLE:
+    Relatable engaging title (No dashes)
 
-IMAGE_KEYWORD:
-1 to 3 descriptive words for Pexels search
+    IMAGE_KEYWORD:
+    1 to 3 descriptive words for Pexels search
 
-INTRO:
-Two short sentences (No dashes).
+    INTRO:
+    Two short sentences (No dashes).
 
-QUOTE:
-One short original quote (No dashes).
+    QUOTE:
+    One short original quote (No dashes).
 
-BODY:
-Write the article in clean HTML using <p> and <h2> only. No emojis. (Strictly no dashes — or –).
-`;
+    BODY:
+    Write the article in clean HTML using <p> and <h2> only. No emojis. (Strictly no dashes — or –).
+    `;
 
-    console.log("Gemini 2.5 Flash is composing...");
+    console.log("Gemini is composing...");
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const cleanText = text.replace(/```html/g, "").replace(/```/g, "").trim();
 
-    const category = cleanText.match(/CATEGORY:\s*(.*)/i)[1].trim();
-    const title = cleanText.match(/TITLE:\s*(.*)/i)[1].trim();
-    const imageKeyword = cleanText.match(/IMAGE_KEYWORD:\s*(.*)/i)[1].trim();
-    const intro = cleanText.match(/INTRO:\s*(.*)/i)[1].trim();
-    const quote = cleanText.match(/QUOTE:\s*(.*)/i)[1].trim();
-    const body = cleanText.match(/BODY:\s*([\s\S]*)/i)[1].trim();
+    // Extract Data using Regex
+    const titleMatch = cleanText.match(/TITLE:\s*(.*)/i);
+    const keywordMatch = cleanText.match(/IMAGE_KEYWORD:\s*(.*)/i);
+    const bodyMatch = cleanText.match(/BODY:\s*([\s\S]*)/i);
 
-    // Reverted: We are NOT passing the title anymore, just the keyword
-    const images = await getImages(imageKeyword, 1);
-    
-    return { category, title, intro, quote, body, featuredImage: images[0] };
+    const title = titleMatch ? titleMatch[1].trim() : "Mindful Living";
+    const imagePrompt = keywordMatch ? keywordMatch[1].trim() : "nature";
+    const htmlContent = bodyMatch ? bodyMatch[1].trim() : "<p>Content generation failed.</p>";
+
+    // Return the clean object that index.js expects
+    return { title, htmlContent, imagePrompt };
+
   } catch (error) {
     console.error("Gemini Error:", error.message);
     throw error;
   }
 }
 
-module.exports = { generateBlogPost };
+module.exports = { generateContent };
