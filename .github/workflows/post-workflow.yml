@@ -1,47 +1,48 @@
-name: Telegram Blogger Bot
+name: Automated Content Bot
 
 on:
   schedule:
-    - cron: '*/30 * * * *' 
-  workflow_dispatch:      
+    - cron: '0 */6 * * *' # Runs every 6 hours
+  workflow_dispatch:      # Allows manual run button
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write     
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
 
-      - name: Install dependencies
-        run: npm install
+    - name: Install dependencies
+      run: npm install
 
-      - name: Run Automation
-        run: node index.js
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
-          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
-          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
-          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+    - name: Run Bot
+      env:
+        # GOOGLE & BLOGGER KEYS
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+        
+        # IMAGE KEYS (These were missing!)
+        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+        CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+        CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        
+        # TELEGRAM KEYS
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: node index.js
 
-      - name: Save Bot State
-        run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git add data/state.json
-          git commit -m "Cycle topic and save image history [skip ci]" || echo "No changes"
-          git push origin main
+    - name: Save History (Commit & Push)
+      run: |
+        git config --global user.name "GitHub Action"
+        git config --global user.email "action@github.com"
+        git add data/state.json
+        git commit -m "Cycle topic and save image history [skip ci]" || echo "No changes to commit"
+        git push
