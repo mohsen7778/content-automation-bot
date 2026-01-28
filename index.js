@@ -10,32 +10,37 @@ async function runBot() {
     const topic = getTopic();
     console.log(`Running Topic: ${topic}`);
 
-    // 2. Generate Text
-    console.log("Gemini is composing...");
+    // 2. Generate Text (Category, Intro, Quote, Body, etc.)
     const content = await generateContent(topic);
     
-    // 3. Get Images (Both Blog & Pinterest versions)
-    // We pass the generated Title to the image service for the overlay
+    // 3. Get Images
+    // Returns { bloggerImage (clean), pinterestImage (edited) }
     const { bloggerImage, pinterestImage } = await getImages(content.imagePrompt, content.title);
 
-    // 4. Post to Blogger (Using the simple Pexels link)
+    // 4. Post to Blogger
+    // We construct the "blogData" object exactly as your file expects
+    const blogData = {
+        category: content.category,
+        title: content.title,
+        intro: content.intro,
+        quote: content.quote,
+        body: content.body,
+        featuredImage: bloggerImage
+    };
+
     console.log("Posting to Blogger...");
-    const blogUrl = await postToBlogger(content.title, content.htmlContent, bloggerImage);
+    const blogUrl = await postToBlogger(blogData);
     console.log(`Success! Post live at: ${blogUrl}`);
 
-    // 5. Send Notification to Telegram (Send the Pinterest Design)
+    // 5. Send Notification to Telegram
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
       const message = `
-📝 *New Blog Post Created!*
+📝 *New Post Published!*
 "${content.title}"
 
 🔗 [Read Online](${blogUrl})
-
-🎨 *Pinterest Design Preview:*
-(See image below)
       `;
       
-      // Send text
       await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
         chat_id: process.env.TELEGRAM_CHAT_ID,
         text: message,
