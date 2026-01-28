@@ -8,12 +8,10 @@ cloudinary.config({
   secure: true
 });
 
-// Helper: split text into lines so it fits on the image
 function splitText(text, maxCharsPerLine = 20) {
     const words = text.split(' ');
     let lines = [];
     let currentLine = words[0];
-
     for (let i = 1; i < words.length; i++) {
         if (currentLine.length + 1 + words[i].length <= maxCharsPerLine) {
             currentLine += " " + words[i];
@@ -23,42 +21,42 @@ function splitText(text, maxCharsPerLine = 20) {
         }
     }
     lines.push(currentLine);
-    return lines.join("%0A"); // Encoded newline
+    return lines.join("%0A");
 }
 
 async function getImages(query, titleForOverlay) {
     try {
         console.log(`Searching Pexels for: ${query}`);
-        const randomPage = Math.floor(Math.random() * 50) + 1;
+        const randomPage = Math.floor(Math.random() * 20) + 1;
 
-        // 1. GET BLOGGER IMAGE (Horizontal, Raw, Just Resized via URL)
+        // 1. GET BLOGGER IMAGE (Strict Landscape, Direct from Pexels)
+        // We add &orientation=landscape to the API call
         const blogResp = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=landscape&page=${randomPage}`, {
             headers: { Authorization: process.env.PEXELS_API_KEY }
         });
         
-        // Add Pexels resize parameters for 1200x630
-        const rawUrl = blogResp.data.photos[0]?.src?.original;
-        const bloggerImage = `${rawUrl}?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop`;
+        // Use the 'large' version which is typically 940x650 or similar, perfect for Blogger
+        // No Cloudinary transformation used here.
+        const bloggerImage = blogResp.data.photos[0]?.src?.large || "https://images.pexels.com/photos/262508/pexels-photo-262508.jpeg";
 
-        // 2. GET PINTEREST IMAGE (Vertical, for editing)
+        // 2. GET PINTEREST IMAGE (Strict Portrait for Telegram/Pinterest)
         const pinResp = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=portrait&page=${randomPage}`, {
             headers: { Authorization: process.env.PEXELS_API_KEY }
         });
         
         const pinRawUrl = pinResp.data.photos[0]?.src?.large2x;
 
-        // 3. EDIT PINTEREST IMAGE IN CLOUDINARY (Text Overlay)
+        // 3. EDIT PINTEREST IMAGE (Only for Telegram/Pinterest use)
         console.log("Creating Pinterest Design...");
         const upload = await cloudinary.uploader.upload(pinRawUrl, { folder: "pinterest-designs" });
         
-        // Clean the title for the overlay (shorten if needed)
         const cleanTitle = titleForOverlay.replace(/[:|]/g, "").split(" ").slice(0, 8).join(" "); 
         const formattedTitle = splitText(cleanTitle);
 
         const pinterestImage = cloudinary.url(upload.public_id, {
             transformation: [
-                { width: 1000, height: 1500, crop: "fill", gravity: "auto" }, // Vertical Crop
-                { effect: "brightness:-40" }, // Darken slightly so text pops
+                { width: 1000, height: 1500, crop: "fill", gravity: "auto" },
+                { effect: "brightness:-40" },
                 {
                     overlay: {
                         font_family: "Arial",
@@ -68,7 +66,7 @@ async function getImages(query, titleForOverlay) {
                         text: formattedTitle
                     },
                     color: "#FFFFFF",
-                    width: 900, // Text box width
+                    width: 900,
                     crop: "fit"
                 }
             ]
@@ -79,7 +77,7 @@ async function getImages(query, titleForOverlay) {
     } catch (error) {
         console.error("Image Error:", error.message);
         return { 
-            bloggerImage: "https://images.pexels.com/photos/262508/pexels-photo-262508.jpeg?w=1200&h=630&fit=crop",
+            bloggerImage: "https://images.pexels.com/photos/262508/pexels-photo-262508.jpeg",
             pinterestImage: null
         };
     }
