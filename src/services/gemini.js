@@ -80,23 +80,25 @@ REMEMBER:
 You are writing for humans, not detectors.
 `;
 
-    console.log("Gemini is composing...");
+    console.log("Gemini is composing (Strict Mode)...");
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     
-    // Split and clean labels
-    const parts = text.split("|||").map(p => p.replace(/^(CATEGORY|TITLE|INTRO|QUOTE|IMAGE_KEYWORD|HTML_BODY|BODY):\s*/i, "").trim());
+    // Split the sections. We don't use label cleaning here 
+    // because your prompt strictly forbids the AI from using labels.
+    const parts = text.split("|||").map(p => p.trim());
 
     if (parts.length < 6) {
         console.error("Format Error: Received parts:", parts.length);
-        throw new Error("Gemini failed to output all 6 sections.");
+        // Fallback split in case AI used double pipes or other common misses
+        throw new Error("Gemini failed to output all 6 sections correctly.");
     }
 
     return { 
         category: parts[0],
         title: parts[1], 
         intro: parts[2],
-        quote: parts[3].replace(/^["']|["']$/g, ""),
+        quote: parts[3], // No regex cleaning needed as prompt forbids quotes
         imagePrompt: parts[4], 
         body: parts[5] 
     };
