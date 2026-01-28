@@ -4,8 +4,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function generateContent(specificNiche) {
   try {
-    // UPDATED: Using the specific model name you requested
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    // RESTORED: Using the exact model from your original file
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
     You are a thoughtful writer for Notes from Mia. 
@@ -36,7 +36,7 @@ async function generateContent(specificNiche) {
     Write the article in clean HTML using <p> and <h2> only. No emojis. (Strictly no dashes — or –).
     `;
 
-    console.log("Gemini 2.5 Pro is composing...");
+    console.log("Gemini 2.5 Flash is composing...");
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
