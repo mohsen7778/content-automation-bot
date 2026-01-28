@@ -1,57 +1,63 @@
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-const { generateBlogPost } = require('./src/services/gemini'); 
+const { getTopic } = require('./src/services/topics');
+const { generateContent } = require('./src/services/gemini');
 const { postToBlogger } = require('./src/services/blogger');
-const { sendToTelegram } = require('./src/services/telegram');
-
-// YOUR 10 TOPICS
-const niches = [
-  "Life and productivity",
-  "Food and simple recipes",
-  "Fitness and gentle movement",
-  "Health and wellness",
-  "Beauty and everyday care",
-  "Money and work habits",
-  "Tech and modern life",
-  "Mindset, habits, and inner clarity",
-  "Home styling and slow living",
-  "Travel and soul growth"
-];
-
-const statePath = path.join(__dirname, 'data', 'state.json');
+const { getImages } = require('./src/services/images');
+const axios = require('axios');
 
 async function runBot() {
-    try {
-        // 1. Load state
-        if (!fs.existsSync(statePath)) {
-            if (!fs.existsSync(path.dirname(statePath))) fs.mkdirSync(path.dirname(statePath));
-            fs.writeFileSync(statePath, JSON.stringify({ nextNicheIndex: 0, usedImageUrls: [] }));
-        }
-        let state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  try {
+    // 1. Get Topic
+    const topic = getTopic();
+    console.log(`Running Topic: ${topic}`);
 
-        // 2. Select the niche
-        let currentNiche = niches[state.nextNicheIndex];
-        console.log(`Running Topic ${state.nextNicheIndex + 1}: ${currentNiche}`);
+    // 2. Generate Text
+    console.log("Gemini is composing...");
+    const content = await generateContent(topic);
+    
+    // 3. Get Images (Both Blog & Pinterest versions)
+    // We pass the generated Title to the image service for the overlay
+    const { bloggerImage, pinterestImage } = await getImages(content.imagePrompt, content.title);
 
-        // 3. Generate content
-        const blogData = await generateBlogPost(currentNiche);
+    // 4. Post to Blogger (Using the simple Pexels link)
+    console.log("Posting to Blogger...");
+    const blogUrl = await postToBlogger(content.title, content.htmlContent, bloggerImage);
+    console.log(`Success! Post live at: ${blogUrl}`);
 
-        // 4. Post to Blogger
-        const postUrl = await postToBlogger(blogData);
-        console.log("Success! Post live at:", postUrl);
+    // 5. Send Notification to Telegram (Send the Pinterest Design)
+    if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+      const message = `
+📝 *New Blog Post Created!*
+"${content.title}"
 
-        // 5. SEND TO TELEGRAM
-        await sendToTelegram(blogData.title, postUrl, blogData.featuredImage);
+🔗 [Read Online](${blogUrl})
 
-        // 6. Update state for next run
-        state.nextNicheIndex = (state.nextNicheIndex + 1) % niches.length;
-        fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
+🎨 *Pinterest Design Preview:*
+(See image below)
+      `;
+      
+      // Send text
+      await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        chat_id: process.env.TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: 'Markdown'
+      });
 
-    } catch (error) {
-        console.error("Bot failed:", error);
-        process.exit(1);
+      // Send the Edited Pinterest Image
+      if (pinterestImage) {
+          await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+            chat_id: process.env.TELEGRAM_CHAT_ID,
+            photo: pinterestImage,
+            caption: "📌 Pinterest Design Ready"
+          });
+      }
+      
+      console.log("Telegram notification sent!");
     }
+
+  } catch (error) {
+    console.error("Bot failed:", error);
+    process.exit(1);
+  }
 }
 
 runBot();
