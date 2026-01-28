@@ -4,44 +4,53 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function generateContent(specificNiche) {
   try {
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash",
-        generationConfig: { responseMimeType: "application/json" } // Force JSON mode
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
+    // We ask for a specific separator (|||) to make parsing 100% fail-proof
     const prompt = `
-    You are a professional blog writer.
-    Topic: ${specificNiche}
+    Write a premium blog post about: ${specificNiche}
     
-    Output strictly valid JSON with this schema:
-    {
-      "title": "Engaging Title (No dashes)",
-      "imagePrompt": "3 descriptive words for Pexels",
-      "htmlContent": "<h1>Header</h1><p>Deep, immersive blog post body...</p>"
-    }
+    STRICT OUTPUT FORMAT:
+    You must separate the Title, Image Keyword, and HTML Body with "|||".
+    
+    Structure:
+    TITLE ||| IMAGE_KEYWORD ||| HTML_BODY
+    
+    Example:
+    Morning Routine ||| Sunrise ||| <p>This is the post...</p>
+    
+    Rules:
+    1. No markdown (no ** or ##).
+    2. No labels (Do not write "Title:").
+    3. Use <p> and <h2> tags for the body.
     `;
 
-    console.log("Gemini is composing (JSON Mode)...");
+    console.log("Gemini 2.5 Flash is composing...");
     const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const text = result.response.text();
     
-    // Parse the JSON reliably
-    const data = JSON.parse(response.text());
+    // Split the text by our special separator
+    const parts = text.split("|||");
+
+    // Safety Check: If AI misses the format, fallback instead of crashing
+    if (parts.length < 3) {
+        console.log("Format warning, using fallback parsing.");
+        return {
+            title: "New Blog Post",
+            imagePrompt: "lifestyle",
+            htmlContent: text // Dump the raw text so you don't lose the content
+        };
+    }
 
     return { 
-        title: data.title, 
-        htmlContent: data.htmlContent, 
-        imagePrompt: data.imagePrompt 
+        title: parts[0].trim(), 
+        imagePrompt: parts[1].trim(), 
+        htmlContent: parts[2].trim() 
     };
 
   } catch (error) {
-    console.error("Gemini JSON Error:", error.message);
-    // Fallback so the bot doesn't crash
-    return {
-        title: "New Post",
-        htmlContent: "<p>Draft generation failed. Please check logs.</p>",
-        imagePrompt: "nature"
-    };
+    console.error("Gemini Error:", error.message);
+    throw error;
   }
 }
 
