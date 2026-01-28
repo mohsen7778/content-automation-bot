@@ -34,24 +34,33 @@ async function getImages(query, count = 1) {
             }
         }
 
-        console.log("Processing image with Cloudinary...");
+        console.log("Processing image with Cloudinary (Gen Fill)...");
 
+        // 1. Upload
         const uploadResult = await cloudinary.uploader.upload(selectedPexelsUrl, {
             folder: "mia-blog-images",
         });
 
-        // --- INTELLIGENT EDITING SETTINGS ---
-        const finalUrl = cloudinary.url(uploadResult.public_id, {
-            width: 1200,
-            height: 630,
-            crop: "pad",             // Puts the whole image in the box (No cropping)
-            background: "gen_fill",  // AI paints the empty space to match the scene
-            effect: "enhance",       // AI color/contrast correction
-            quality: "auto",
-            fetch_format: "auto"
+        // 2. FORCE AI GENERATION
+        // This keeps the image clean (no text) but uses AI to extend the background (pad)
+        // and enhance the colors.
+        const explicitResult = await cloudinary.uploader.explicit(uploadResult.public_id, {
+            type: "upload",
+            eager: [
+                {
+                    width: 1200,
+                    height: 630,
+                    crop: "pad",            // Don't cut content
+                    background: "gen_fill", // AI paints the edges
+                    effect: "enhance"       // AI Color/Lighting fix
+                }
+            ],
+            eager_async: false // WAIT for the AI to finish
         });
 
-        console.log("Image processed successfully:", finalUrl);
+        const finalUrl = explicitResult.eager[0].secure_url;
+
+        console.log("AI Image Ready:", finalUrl);
 
         state.usedImageUrls.push(selectedPexelsUrl);
         if (state.usedImageUrls.length > 100) state.usedImageUrls.shift();
