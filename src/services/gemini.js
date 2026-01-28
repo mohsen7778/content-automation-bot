@@ -48,6 +48,7 @@ Write the article in clean HTML using <p> and <h2> only. No emojis. (Strictly no
     const quote = cleanText.match(/QUOTE:\s*(.*)/i)[1].trim();
     const body = cleanText.match(/BODY:\s*([\s\S]*)/i)[1].trim();
 
+    // Reverted: We are NOT passing the title anymore, just the keyword
     const images = await getImages(imageKeyword, 1);
     
     return { category, title, intro, quote, body, featuredImage: images[0] };
