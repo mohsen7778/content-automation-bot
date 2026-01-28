@@ -2,10 +2,10 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Renamed to match index.js
-async function generateContent(specificNiche) { 
+async function generateContent(specificNiche) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // 1.5 is standard, 2.5 isn't public yet
+    // UPDATED: Using the specific model name you requested
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
     const prompt = `
     You are a thoughtful writer for Notes from Mia. 
@@ -36,9 +36,11 @@ async function generateContent(specificNiche) {
     Write the article in clean HTML using <p> and <h2> only. No emojis. (Strictly no dashes — or –).
     `;
 
-    console.log("Gemini is composing...");
+    console.log("Gemini 2.5 Pro is composing...");
     const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const response = await result.response;
+    const text = response.text();
+    
     const cleanText = text.replace(/```html/g, "").replace(/```/g, "").trim();
 
     // Extract Data using Regex
@@ -50,7 +52,6 @@ async function generateContent(specificNiche) {
     const imagePrompt = keywordMatch ? keywordMatch[1].trim() : "nature";
     const htmlContent = bodyMatch ? bodyMatch[1].trim() : "<p>Content generation failed.</p>";
 
-    // Return the clean object that index.js expects
     return { title, htmlContent, imagePrompt };
 
   } catch (error) {
