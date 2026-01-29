@@ -3,7 +3,7 @@ const axios = require("axios");
 async function generateContent(specificNiche) {
   // We use Mistral 7B because it is free on HF and smart enough to format correctly.
   // Flan-t5-small is too weak and will crash the bot.
-  const MODEL_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3";
+  const MODEL_URL = "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3";
 
   try {
     console.log(`\n🔌 Connecting to Hugging Face (${MODEL_URL})...`);
