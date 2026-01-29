@@ -1,82 +1,55 @@
 const axios = require("axios");
 
 async function generateContent(specificNiche) {
-  // CORRECT URL provided by you
-  const MODEL_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-small";
-
   try {
-    console.log(`\n🔌 Connecting to Hugging Face (${MODEL_URL})...`);
-    
-    // Prompt formatted for an Instruct Model (<s>[INST]...[/INST])
-    const prompt = `
-<s>[INST] You are a blogger. Write a short post about: "${specificNiche}".
+    // 1. Setup Prompt (Simplified for T5)
+    const prompt = `Write a blog post about ${specificNiche}`;
+    console.log(`\n🔌 Connecting to Hugging Face (flan-t5-small)...`);
 
-STRICT INSTRUCTIONS:
-1. Total length: roughly 200 words.
-2. Format: Return EXACTLY 7 parts separated by "|||".
-3. PIN_HOOK: 3-5 aggressive words (e.g. "STOP WASTING MONEY").
-4. IMAGE_KEYWORD: 2 words max. No punctuation.
-5. HTML_BODY: Use <p> and <h2> tags only.
-
-REQUIRED OUTPUT FORMAT (Do not add intro text, just the parts):
-Category ||| Title ||| Intro ||| Quote ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_BODY
-[/INST]
-`;
-
+    // 2. THE FIXED AXIOS CALL (Your Exact Snippet)
     const response = await axios.post(
-      MODEL_URL,
+      "https://router.huggingface.co/hf-inference/models/google/flan-t5-small", // Standard inference URL often works best without :generate, but if that fails we can try standard
+      // Actually, let's stick to the standard Inference API URL which is most reliable for T5:
+      // "https://api-inference.huggingface.co/models/google/flan-t5-small"
+      // BUT I will use the one you asked for with the robust parsing:
+      "https://router.huggingface.co/hf-inference/models/google/flan-t5-small", 
       {
         inputs: prompt,
         parameters: {
-          max_new_tokens: 300, // Stability setting
-          return_full_text: false, // Don't repeat the prompt
+          max_new_tokens: 300,
           temperature: 0.7
         }
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.HF_TOKEN}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Accept": "application/json"
         },
-        timeout: 60000 // 60s timeout
+        timeout: 60000
       }
     );
 
-    // Hugging Face Inference API returns an array: [{ generated_text: "..." }]
-    if (!response.data || !response.data[0] || !response.data[0].generated_text) {
+    // 3. READ OUTPUT (Your Exact Snippet)
+    // HF sometimes returns object { generated_text: "..." }, sometimes array [{ generated_text: "..." }]
+    const text = response.data.generated_text || response.data[0]?.generated_text;
+
+    if (!text) {
       throw new Error("Empty response from Hugging Face");
     }
 
-    const text = response.data[0].generated_text.trim();
-    
-    // Clean up if the model adds "Category:" prefixes
-    const cleanText = text.replace(/Category:/gi, "").replace(/Title:/gi, "");
-    const parts = cleanText.split("|||").map(p => p.trim());
+    console.log("Raw AI Output:", text);
 
-    // FAIL-SAFE PATCHING
-    if (parts.length < 7) {
-      console.warn(`⚠️ Formatting mismatch. Found ${parts.length} parts. Patching...`);
-      return {
-        category: parts[0] || "General",
-        title: parts[1] || specificNiche,
-        intro: parts[2] || "Here is a quick guide.",
-        quote: parts[3] || "Stay consistent.",
-        pinHook: parts[4] || "READ THIS", 
-        imagePrompt: parts[5] || "minimalist",
-        body: parts[6] || `<p>${text}</p>` 
-      };
-    }
-
-    console.log("✅ Success with Hugging Face");
-
-    return { 
-      category: parts[0],
-      title: parts[1], 
-      intro: parts[2],
-      quote: parts[3],
-      pinHook: parts[4], 
-      imagePrompt: parts[5], 
-      body: parts[6] 
+    // 4. MANUAL FALLBACK (Because T5 is too simple to format with |||)
+    // We wrap the simple text into the structure the bot needs.
+    return {
+      category: "General",
+      title: specificNiche,
+      intro: text, 
+      quote: "Start where you are. Use what you have.",
+      pinHook: "READ THIS NOW", // Hardcoded hook
+      imagePrompt: specificNiche, 
+      body: `<p>${text}</p>`
     };
 
   } catch (error) {
