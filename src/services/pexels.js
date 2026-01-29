@@ -2,35 +2,54 @@
 const axios = require('axios');
 
 /**
- * Searches Pexels for a high-quality vertical image.
- * @param {string} query - The topic to search for (e.g., "Yoga", "Pasta").
- * @returns {Promise<string|null>} - The raw image URL or null if failed.
+ * Searches Pexels for both a horizontal (landscape) and a vertical (portrait) image.
+ * @param {string} query - The topic to search for.
+ * @returns {Promise<{landscapeUrl: string|null, portraitUrl: string|null}>}
  */
 const getImages = async (query) => {
+  // Create a reusable Pexels client
+  const pexelsClient = axios.create({
+    baseURL: 'https://api.pexels.com/v1/',
+    headers: {
+      Authorization: process.env.PEXELS_API_KEY
+    }
+  });
+
   try {
-    const response = await axios.get('https://api.pexels.com/v1/search', {
-      headers: {
-        Authorization: process.env.PEXELS_API_KEY
-      },
-      params: {
-        query: query,
-        per_page: 1,
-        orientation: 'portrait', // Forces vertical images for Pinterest
-        size: 'medium' // 'large' or 'original' is safer for quality, 'medium' is faster
-      }
+    // 1. Define the two search requests
+    // Landscape for Blogger (large size is usually sufficient)
+    const landscapeRequest = pexelsClient.get('search', {
+      params: { query, per_page: 1, orientation: 'landscape', size: 'large' }
     });
 
-    if (response.data.photos && response.data.photos.length > 0) {
-      // We grab the 'original' size for best editing quality
-      return response.data.photos[0].src.original;
-    }
-    
-    console.log(`⚠️ No images found on Pexels for: ${query}`);
-    return null;
+    // Portrait for Pinterest/Telegram (original size for best editing quality)
+    const portraitRequest = pexelsClient.get('search', {
+      params: { query, per_page: 1, orientation: 'portrait', size: 'original' }
+    });
+
+    // 2. Run them in parallel for speed
+    const [landscapeRes, portraitRes] = await Promise.all([landscapeRequest, portraitRequest]);
+
+    // 3. Extract URLs
+    const landscapeUrl = landscapeRes.data.photos.length > 0
+      ? landscapeRes.data.photos[0].src.large
+      : null;
+
+    const portraitUrl = portraitRes.data.photos.length > 0
+      ? portraitRes.data.photos[0].src.original
+      : null;
+
+    // Log warnings if one is missing
+    if (!landscapeUrl) console.warn(`⚠️ Pexels: No landscape image found for '${query}'`);
+    if (!portraitUrl) console.warn(`⚠️ Pexels: No portrait image found for '${query}'`);
+
+    // 4. Return object with both URLs
+    return { landscapeUrl, portraitUrl };
 
   } catch (error) {
     console.error(`❌ Pexels API Error: ${error.message}`);
-    return null;
+    // Return nulls so the main bot can handle the failure
+    return { landscapeUrl: null, portraitUrl: null };
   }
 };
 
