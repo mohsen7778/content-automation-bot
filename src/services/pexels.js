@@ -1,24 +1,37 @@
+// src/services/pexels.js
 const axios = require('axios');
 
-async function getPexelsImage(query) {
-    try {
-        // Search for images based on the blog category or title
-        const response = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=1`, {
-            headers: {
-                Authorization: process.env.PEXELS_API_KEY
-            }
-        });
+/**
+ * Searches Pexels for a high-quality vertical image.
+ * @param {string} query - The topic to search for (e.g., "Yoga", "Pasta").
+ * @returns {Promise<string|null>} - The raw image URL or null if failed.
+ */
+const getImages = async (query) => {
+  try {
+    const response = await axios.get('https://api.pexels.com/v1/search', {
+      headers: {
+        Authorization: process.env.PEXELS_API_KEY
+      },
+      params: {
+        query: query,
+        per_page: 1,
+        orientation: 'portrait', // Forces vertical images for Pinterest
+        size: 'medium' // 'large' or 'original' is safer for quality, 'medium' is faster
+      }
+    });
 
-        if (response.data.photos && response.data.photos.length > 0) {
-            // Return the high-res image URL
-            return response.data.photos[0].src.large2x;
-        }
-        // Fallback image if nothing is found
-        return "https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg";
-    } catch (error) {
-        console.error("Pexels Error:", error.message);
-        return "https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg";
+    if (response.data.photos && response.data.photos.length > 0) {
+      // We grab the 'original' size for best editing quality
+      return response.data.photos[0].src.original;
     }
-}
+    
+    console.log(`⚠️ No images found on Pexels for: ${query}`);
+    return null;
 
-module.exports = { getPexelsImage };
+  } catch (error) {
+    console.error(`❌ Pexels API Error: ${error.message}`);
+    return null;
+  }
+};
+
+module.exports = { getImages };
