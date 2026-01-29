@@ -10,10 +10,11 @@ const fs = require('fs');
 const path = require('path');
 const FormData = require('form-data');
 
-// Helper to prevent Telegram crashes
+// FIX: Improved Regex to strictly catch hyphens (-) and special chars for Telegram MarkdownV2
 const escapeMarkdown = (text) => {
     if (!text) return "";
-    return text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
+    // The hyphen (-) is now escaped as \- inside the brackets to prevent "range" errors
+    return text.replace(/([_*[\]()~`>#\+\-=|{}.!])/g, '\\$1');
 };
 
 async function runBot() {
@@ -28,17 +29,18 @@ async function runBot() {
     const { landscapeUrl, portraitUrl } = await getImages(content.imagePrompt);
 
     // 2. Assign Images
-    // Blogger = Raw Horizontal Image
+    // Blogger = Raw Horizontal Image (No Cloudinary editing)
     const bloggerImage = landscapeUrl;
-    // Pinterest/Telegram = Edited Vertical Image
+    
+    // Pinterest/Telegram = Edited Vertical Image (With Cloudinary Text)
     const pinterestImage = generatePinUrl(portraitUrl, content.pinHook, "dark", "Inter");
 
     // 3. Post to Blogger
-    // FIX APPLIED: Removed manual <img> tag injection to prevent duplicate images.
+    // We pass the RAW landscape image. We do NOT inject an <img> tag manually.
     const blogUrl = await postToBlogger({
         ...content,
-        body: content.body, // Pass raw text only
-        featuredImage: bloggerImage // Let the script/theme handle the image
+        body: content.body, 
+        featuredImage: bloggerImage 
     });
 
     console.log(`✅ Blog live: ${blogUrl}`);
@@ -66,6 +68,7 @@ async function runBot() {
           writer.on('error', reject);
         });
 
+        // Apply the FIXED escape function to Title and Hook
         const safeTitle = escapeMarkdown(content.title);
         const safeHook = escapeMarkdown(content.pinHook);
         const caption = `📝 *New Post:* ${safeTitle}\n\n📌 *Pin:* ${safeHook}\n\n🔗 [Read More](${blogUrl})`;
