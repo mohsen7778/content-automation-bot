@@ -1,62 +1,92 @@
 const axios = require("axios");
 
 async function generateContent(specificNiche) {
-  try {
-    // 1. Setup Prompt (Simplified for T5)
-    const prompt = `Write a blog post about ${specificNiche}`;
-    console.log(`\n🔌 Connecting to Hugging Face (flan-t5-small)...`);
+  // CORRECT ENDPOINT for Chat Models
+  const API_URL = "https://router.huggingface.co/v1/chat/completions";
+  
+  // YOUR REQUESTED MODEL
+  const MODEL_ID = "TinyLlama/TinyLlama-1.1B-Chat-v1.0";
 
-    // 2. THE FIXED AXIOS CALL (Your Exact Snippet)
+  try {
+    console.log(`\n🔌 Connecting to Hugging Face Router (${MODEL_ID})...`);
+    
+    // TinyLlama is small but chat-optimized. We keep instructions simple.
+    const prompt = `
+You are a helpful blogger. Write a short blog post about: "${specificNiche}".
+
+STRICT FORMATTING RULES:
+1. Return EXACTLY 7 parts separated by "|||".
+2. Do not include any introductory text like "Here is the blog post". Just the parts.
+3. Order: Category ||| Title ||| Intro ||| Quote ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_BODY
+
+DETAILS:
+- PIN_HOOK: 3-5 aggressive words (e.g. "STOP WASTING MONEY").
+- IMAGE_KEYWORD: 2 words max. No punctuation.
+- HTML_BODY: Use <p> and <h2> tags only. Keep it under 200 words.
+
+Output ONLY the 7 parts joined by |||.
+`;
+
     const response = await axios.post(
-      "https://router.huggingface.co/hf-inference/models/google/flan-t5-small", // Standard inference URL often works best without :generate, but if that fails we can try standard
-      // Actually, let's stick to the standard Inference API URL which is most reliable for T5:
-      // "https://api-inference.huggingface.co/models/google/flan-t5-small"
-      // BUT I will use the one you asked for with the robust parsing:
-      "https://router.huggingface.co/hf-inference/models/google/flan-t5-small", 
+      API_URL,
       {
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 300,
-          temperature: 0.7
-        }
+        model: MODEL_ID, 
+        messages: [
+          { role: "user", content: prompt }
+        ],
+        max_tokens: 400,
+        temperature: 0.7
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.HF_TOKEN}`,
-          "Content-Type": "application/json",
-          "Accept": "application/json"
+          "Authorization": `Bearer ${process.env.HF_TOKEN}`,
+          "Content-Type": "application/json"
         },
-        timeout: 60000
+        timeout: 60000 // 60s timeout
       }
     );
 
-    // 3. READ OUTPUT (Your Exact Snippet)
-    // HF sometimes returns object { generated_text: "..." }, sometimes array [{ generated_text: "..." }]
-    const text = response.data.generated_text || response.data[0]?.generated_text;
-
-    if (!text) {
-      throw new Error("Empty response from Hugging Face");
+    // PARSING: Standard OpenAI Format
+    if (!response.data || !response.data.choices || !response.data.choices[0]) {
+      throw new Error("Empty response from Hugging Face Router");
     }
 
-    console.log("Raw AI Output:", text);
+    const text = response.data.choices[0].message.content.trim();
+    const parts = text.split("|||").map(p => p.trim());
 
-    // 4. MANUAL FALLBACK (Because T5 is too simple to format with |||)
-    // We wrap the simple text into the structure the bot needs.
-    return {
-      category: "General",
-      title: specificNiche,
-      intro: text, 
-      quote: "Start where you are. Use what you have.",
-      pinHook: "READ THIS NOW", // Hardcoded hook
-      imagePrompt: specificNiche, 
-      body: `<p>${text}</p>`
+    // FAIL-SAFE PATCHING
+    // TinyLlama is smart, but if it misses a section, we fix it here.
+    if (parts.length < 7) {
+      console.warn(`⚠️ Formatting mismatch. Found ${parts.length} parts. Patching...`);
+      return {
+        category: parts[0] || "General",
+        title: parts[1] || specificNiche,
+        intro: parts[2] || "Here is a quick guide on this topic.",
+        quote: parts[3] || "Small steps lead to big changes.",
+        pinHook: parts[4] || "READ THIS NOW", 
+        imagePrompt: parts[5] || "lifestyle",
+        body: parts[6] || `<p>${text}</p>` 
+      };
+    }
+
+    console.log("✅ Success with TinyLlama");
+
+    return { 
+      category: parts[0],
+      title: parts[1], 
+      intro: parts[2],
+      quote: parts[3],
+      pinHook: parts[4], 
+      imagePrompt: parts[5], 
+      body: parts[6] 
     };
 
   } catch (error) {
+    // 503 means the model is loading. 
     if (error.response?.status === 503) {
       throw new Error("Model is loading (503). Please wait 30 seconds and run again.");
     }
-    const msg = error.response?.data?.error || error.message;
+    const msg = error.response?.data?.error?.message || error.message;
     console.error(`❌ Hugging Face Error: ${msg}`);
     throw error;
   }
