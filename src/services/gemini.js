@@ -7,19 +7,20 @@ Topic: ${specificNiche}
 
 STRICT OUTPUT FORMAT:
 You must provide 6 sections separated by exactly "|||".
-Order: CATEGORY ||| TITLE ||| INTRO ||| QUOTE ||| IMAGE_KEYWORD ||| HTML_BODY
+Order: CATEGORY ||| TITLE ||| INTRO ||| QUOTE ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_BODY
 
 VOICE AND STYLE:
 You are a professional human blogger. Avoid all AI clichés (e.g., 'In the rapidly evolving landscape,' 'tapestry,' 'delve'). Use varied sentence lengths. Use contractions. Use occasional personal anecdotes or rhetorical questions to engage the reader. Keep the tone conversational but authoritative.
 
-RULES:
-- No greetings. Start directly.
-- HTML_BODY must use ONLY <p> and <h2> tags.
-- No markdown symbols.
-- Output ONLY the 6 sections separated by |||.
+SPECIFIC SECTION RULES:
+- PIN_HOOK: A 3-5 word aggressive "psychological hook" for Pinterest (e.g., "STOP WASTING MONEY", "THE HIDDEN TRUTH", "7 ITEMS TO TOSS").
+- IMAGE_KEYWORD: 2-3 words for Pexels search (e.g., "minimalist kitchen").
+- HTML_BODY: Use ONLY <p> and <h2> tags. No markdown.
+
+Output ONLY the 7 sections separated by |||.
 `;
 
-    console.log("Requesting from OpenRouter (gpt-oss-120b:free)...");
+    console.log("Requesting from OpenRouter...");
     
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -36,13 +37,10 @@ RULES:
     );
 
     const text = response.data.choices[0].message.content.trim();
-    
-    // Split the sections by the pipe separator
     const parts = text.split("|||").map(p => p.trim());
 
-    if (parts.length < 6) {
-      console.error("Received raw text:", text);
-      throw new Error("OpenRouter failed to output all 6 sections.");
+    if (parts.length < 7) {
+      throw new Error("OpenRouter failed to output all 7 sections.");
     }
 
     return { 
@@ -50,13 +48,13 @@ RULES:
       title: parts[1], 
       intro: parts[2],
       quote: parts[3],
-      imagePrompt: parts[4], 
-      body: parts[5] 
+      pinHook: parts[4], // The new psychological hook
+      imagePrompt: parts[5], 
+      body: parts[6] 
     };
 
   } catch (error) {
-    const errorData = error.response?.data || error.message;
-    console.error("OpenRouter Error:", errorData);
+    console.error("OpenRouter Error:", error.message);
     throw error;
   }
 }
