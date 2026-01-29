@@ -1,56 +1,57 @@
 const axios = require("axios");
 
 async function generateContent(specificNiche) {
-  // CORRECT 2026 ENDPOINT (OpenAI Compatible)
-  const API_URL = "https://router.huggingface.co/v1/chat/completions";
-  
-  // We specify the model in the BODY now
-  const MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3";
+  // CORRECT URL provided by you
+  const MODEL_URL = "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3";
 
   try {
-    console.log(`\n🔌 Connecting to Hugging Face Router (${MODEL_ID})...`);
+    console.log(`\n🔌 Connecting to Hugging Face (${MODEL_URL})...`);
     
-    // Lite Prompt for reliability
+    // Prompt formatted for an Instruct Model (<s>[INST]...[/INST])
     const prompt = `
-Topic: "${specificNiche}"
+<s>[INST] You are a blogger. Write a short post about: "${specificNiche}".
 
 STRICT INSTRUCTIONS:
-1. Write a short blog post (approx 200 words).
+1. Total length: roughly 200 words.
 2. Format: Return EXACTLY 7 parts separated by "|||".
 3. PIN_HOOK: 3-5 aggressive words (e.g. "STOP WASTING MONEY").
 4. IMAGE_KEYWORD: 2 words max. No punctuation.
 5. HTML_BODY: Use <p> and <h2> tags only.
 
-REQUIRED OUTPUT FORMAT:
+REQUIRED OUTPUT FORMAT (Do not add intro text, just the parts):
 Category ||| Title ||| Intro ||| Quote ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_BODY
+[/INST]
 `;
 
     const response = await axios.post(
-      API_URL,
+      MODEL_URL,
       {
-        model: MODEL_ID, 
-        messages: [
-          { role: "user", content: prompt }
-        ],
-        max_tokens: 600, // Reduced to 600 for stability
-        temperature: 0.7
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 600, // Stability setting
+          return_full_text: false, // Don't repeat the prompt
+          temperature: 0.7
+        }
       },
       {
         headers: {
-          "Authorization": `Bearer ${process.env.HF_TOKEN}`,
+          Authorization: `Bearer ${process.env.HF_TOKEN}`,
           "Content-Type": "application/json"
         },
         timeout: 60000 // 60s timeout
       }
     );
 
-    // PARSING: OpenAI-style response format
-    if (!response.data || !response.data.choices || !response.data.choices[0]) {
-      throw new Error("Empty response from Hugging Face Router");
+    // Hugging Face Inference API returns an array: [{ generated_text: "..." }]
+    if (!response.data || !response.data[0] || !response.data[0].generated_text) {
+      throw new Error("Empty response from Hugging Face");
     }
 
-    const text = response.data.choices[0].message.content.trim();
-    const parts = text.split("|||").map(p => p.trim());
+    const text = response.data[0].generated_text.trim();
+    
+    // Clean up if the model adds "Category:" prefixes
+    const cleanText = text.replace(/Category:/gi, "").replace(/Title:/gi, "");
+    const parts = cleanText.split("|||").map(p => p.trim());
 
     // FAIL-SAFE PATCHING
     if (parts.length < 7) {
@@ -66,7 +67,7 @@ Category ||| Title ||| Intro ||| Quote ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_B
       };
     }
 
-    console.log("✅ Success with Hugging Face Router");
+    console.log("✅ Success with Hugging Face");
 
     return { 
       category: parts[0],
@@ -79,11 +80,10 @@ Category ||| Title ||| Intro ||| Quote ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_B
     };
 
   } catch (error) {
-    // 503 means the model is "cold" and loading. 
     if (error.response?.status === 503) {
       throw new Error("Model is loading (503). Please wait 30 seconds and run again.");
     }
-    const msg = error.response?.data?.error?.message || error.message;
+    const msg = error.response?.data?.error || error.message;
     console.error(`❌ Hugging Face Error: ${msg}`);
     throw error;
   }
