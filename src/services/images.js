@@ -4,8 +4,7 @@ const PINTEREST_WIDTH = 1080;
 const PINTEREST_HEIGHT = 1620;
 
 // 1. SAFETY FIX: Mapped to Cloudinary-supported fonts
-// Inter -> Roboto (Guaranteed to work)
-// Source Sans Pro -> Arial (Bulletproof fallback)
+// 'Inter' is not supported by default. We MUST map it to 'Roboto'.
 const FONT_MAP = {
   'Inter': 'Roboto', 
   'Source Sans Pro': 'Arial',
@@ -14,7 +13,6 @@ const FONT_MAP = {
 
 /**
  * Helper: Smartly breaks long text into two balanced lines.
- * Must be defined BEFORE it is called.
  */
 const smartLineBreak = (text) => {
   if (!text) return "";
@@ -37,7 +35,7 @@ const generatePinUrl = (imageUrl, text, theme = 'dark', font = 'Inter') => {
   const publicId = encodeURIComponent(imageUrl);
   const cleanText = smartLineBreak(text);
   
-  // Use the map to get a safe font
+  // Use the map to get a safe font. If 'Inter' is passed, it becomes 'Roboto'.
   const cloudFont = FONT_MAP[font] || 'Roboto';
   
   const textColor = theme === 'dark' ? 'FFFFFF' : '000000';
