@@ -2,54 +2,62 @@
 const axios = require('axios');
 
 /**
- * Searches Pexels for both a horizontal (landscape) and a vertical (portrait) image.
- * @param {string} query - The topic to search for.
- * @returns {Promise<{landscapeUrl: string|null, portraitUrl: string|null}>}
+ * Searches Pexels for both landscape and portrait images.
+ * Includes fallback logic to prevent bot crashes on API errors.
  */
 const getImages = async (query) => {
-  // Create a reusable Pexels client
   const pexelsClient = axios.create({
     baseURL: 'https://api.pexels.com/v1/',
-    headers: {
-      Authorization: process.env.PEXELS_API_KEY
-    }
+    headers: { Authorization: process.env.PEXELS_API_KEY }
   });
 
+  // 1. Clean the query (Replace underscores/hyphens with spaces)
+  // "minimalist_living" -> "minimalist living"
+  const cleanQuery = query.replace(/[_-]/g, ' ');
+
+  const searchPexels = async (searchParams) => {
+    try {
+      return await pexelsClient.get('search', { params: searchParams });
+    } catch (err) {
+      console.warn(`⚠️ Pexels search failed for query: "${searchParams.query}". Status: ${err.response?.status}`);
+      return null;
+    }
+  };
+
   try {
-    // 1. Define the two search requests
-    // Landscape for Blogger (large size is usually sufficient)
-    const landscapeRequest = pexelsClient.get('search', {
-      params: { query, per_page: 1, orientation: 'landscape', size: 'large' }
-    });
+    // 2. Define Requests
+    const landscapeReq = searchPexels({ query: cleanQuery, per_page: 1, orientation: 'landscape', size: 'large' });
+    const portraitReq = searchPexels({ query: cleanQuery, per_page: 1, orientation: 'portrait', size: 'original' });
 
-    // Portrait for Pinterest/Telegram (original size for best editing quality)
-    const portraitRequest = pexelsClient.get('search', {
-      params: { query, per_page: 1, orientation: 'portrait', size: 'original' }
-    });
+    let [landscapeRes, portraitRes] = await Promise.all([landscapeReq, portraitReq]);
 
-    // 2. Run them in parallel for speed
-    const [landscapeRes, portraitRes] = await Promise.all([landscapeRequest, portraitRequest]);
+    // 3. Fallback Mechanism (If 500 Error or No Results)
+    // If specific topic fails, search for a safe generic term "nature"
+    if (!landscapeRes || landscapeRes.data.photos.length === 0) {
+      console.log("🔄 Switching to fallback landscape image...");
+      landscapeRes = await searchPexels({ query: 'nature', per_page: 1, orientation: 'landscape', size: 'large' });
+    }
+    if (!portraitRes || portraitRes.data.photos.length === 0) {
+      console.log("🔄 Switching to fallback portrait image...");
+      portraitRes = await searchPexels({ query: 'nature', per_page: 1, orientation: 'portrait', size: 'original' });
+    }
 
-    // 3. Extract URLs
-    const landscapeUrl = landscapeRes.data.photos.length > 0
-      ? landscapeRes.data.photos[0].src.large
-      : null;
+    // 4. Extract URLs (Safe extraction)
+    const landscapeUrl = landscapeRes?.data?.photos?.[0]?.src?.large || 
+                         "https://images.pexels.com/photos/268533/pexels-photo-268533.jpeg"; // Ultimate fallback
 
-    const portraitUrl = portraitRes.data.photos.length > 0
-      ? portraitRes.data.photos[0].src.original
-      : null;
+    const portraitUrl = portraitRes?.data?.photos?.[0]?.src?.original || 
+                        "https://images.pexels.com/photos/3052361/pexels-photo-3052361.jpeg"; // Ultimate fallback
 
-    // Log warnings if one is missing
-    if (!landscapeUrl) console.warn(`⚠️ Pexels: No landscape image found for '${query}'`);
-    if (!portraitUrl) console.warn(`⚠️ Pexels: No portrait image found for '${query}'`);
-
-    // 4. Return object with both URLs
     return { landscapeUrl, portraitUrl };
 
   } catch (error) {
-    console.error(`❌ Pexels API Error: ${error.message}`);
-    // Return nulls so the main bot can handle the failure
-    return { landscapeUrl: null, portraitUrl: null };
+    console.error(`❌ Critical Pexels Error: ${error.message}`);
+    // Return hardcoded safe images so the bot NEVER dies
+    return { 
+      landscapeUrl: "https://images.pexels.com/photos/268533/pexels-photo-268533.jpeg", 
+      portraitUrl: "https://images.pexels.com/photos/3052361/pexels-photo-3052361.jpeg" 
+    };
   }
 };
 
