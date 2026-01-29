@@ -10,10 +10,8 @@ const fs = require('fs');
 const path = require('path');
 const FormData = require('form-data');
 
-// FIX: Improved Regex to strictly catch hyphens (-) and special chars for Telegram MarkdownV2
 const escapeMarkdown = (text) => {
     if (!text) return "";
-    // The hyphen (-) is now escaped as \- inside the brackets to prevent "range" errors
     return text.replace(/([_*[\]()~`>#\+\-=|{}.!])/g, '\\$1');
 };
 
@@ -24,19 +22,13 @@ async function runBot() {
 
     const content = await generateContent(topic);
 
-    // 1. Find BOTH Images (Landscape & Portrait)
     console.log(`📷 Searching Pexels for: ${content.imagePrompt}...`);
     const { landscapeUrl, portraitUrl } = await getImages(content.imagePrompt);
 
-    // 2. Assign Images
-    // Blogger = Raw Horizontal Image (No Cloudinary editing)
     const bloggerImage = landscapeUrl;
-    
-    // Pinterest/Telegram = Edited Vertical Image (With Cloudinary Text)
     const pinterestImage = generatePinUrl(portraitUrl, content.pinHook, "dark", "Inter");
 
     // 3. Post to Blogger
-    // We pass the RAW landscape image. We do NOT inject an <img> tag manually.
     const blogUrl = await postToBlogger({
         ...content,
         body: content.body, 
@@ -53,6 +45,7 @@ async function runBot() {
 
       console.log("📱 Downloading Pinterest image for Telegram...");
 
+      // STEP 1: DOWNLOAD IMAGE (Cloudinary Check)
       try {
         const response = await axios({ 
             url: pinterestImage, 
@@ -68,7 +61,13 @@ async function runBot() {
           writer.on('error', reject);
         });
 
-        // Apply the FIXED escape function to Title and Hook
+      } catch (downloadErr) {
+        // If this hits, your Cloudinary URL is wrong (e.g., syntax error)
+        throw new Error(`Cloudinary Download Failed: ${downloadErr.message}`);
+      }
+
+      // STEP 2: SEND TO TELEGRAM
+      try {
         const safeTitle = escapeMarkdown(content.title);
         const safeHook = escapeMarkdown(content.pinHook);
         const caption = `📝 *New Post:* ${safeTitle}\n\n📌 *Pin:* ${safeHook}\n\n🔗 [Read More](${blogUrl})`;
@@ -86,7 +85,8 @@ async function runBot() {
         console.log("✅ Telegram Notification Sent!");
 
       } catch (telegramErr) {
-        console.error("⚠️ Telegram Error:", telegramErr.message);
+        // If this hits, it's a Markdown error or Token issue
+        console.error("❌ Telegram Send Failed:", telegramErr.response?.data?.description || telegramErr.message);
       } finally {
         if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
       }
