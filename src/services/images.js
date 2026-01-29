@@ -1,35 +1,60 @@
-const axios = require("axios");
+// src/services/images.js
 
-async function getImages(imagePrompt, pinHook) {
-  try {
-    const [horizontal, vertical] = await Promise.all([
-      axios.get(`https://api.pexels.com/v1/search?query=${encodeURIComponent(imagePrompt)}&orientation=landscape&per_page=1`, {
-        headers: { Authorization: process.env.PEXELS_API_KEY }
-      }),
-      axios.get(`https://api.pexels.com/v1/search?query=${encodeURIComponent(imagePrompt)}&orientation=portrait&per_page=1`, {
-        headers: { Authorization: process.env.PEXELS_API_KEY }
-      })
-    ]);
+const PINTEREST_WIDTH = 1080;
+const PINTEREST_HEIGHT = 1620;
 
-    const bloggerImage = horizontal.data.photos[0]?.src?.large2x || "";
-    const pexelsVerticalUrl = vertical.data.photos[0]?.src?.large2x || "";
-    
-    // Clean hook for URL safety
-    const cleanHook = encodeURIComponent(pinHook.replace(/[^a-zA-Z0-9 ]/g, ' '));
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+// 1. Font Mapping: Safe font names for Cloudinary (No spaces allowed in IDs)
+const FONT_MAP = {
+  'Inter': 'Inter',
+  'Source Sans Pro': 'SourceSansPro', 
+  'Montserrat': 'Montserrat'
+};
 
-    const pinterestImage = `https://res.cloudinary.com/${cloudName}/image/fetch/` +
-      `w_1000,h_1500,c_fill,f_jpg,q_auto/` + 
-      `co_white,b_black,o_70,l_text:Arial_80_bold_center:${cleanHook}/` +
-      `fl_layer_apply,g_south,y_150/` +
-      `${pexelsVerticalUrl}`;
+/**
+ * Helper: Smartly breaks long text into two balanced lines.
+ * Prevents 6-word hooks from becoming tiny unreadable text.
+ */
+const smartLineBreak = (text) => {
+  const upperText = text.toUpperCase();
+  const words = upperText.split(' ');
 
-    return { bloggerImage, pinterestImage };
-  } catch (error) {
-    console.error(`❌ Image Service Error: ${error.message}`);
-    const fallback = "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg";
-    return { bloggerImage: fallback, pinterestImage: fallback };
-  }
-}
+  // If short (3 words or less), keep it one line for maximum impact.
+  if (words.length <= 3) return encodeURIComponent(upperText);
 
-module.exports = { getImages };
+  // If long, split down the middle so it stacks nicely.
+  const middle = Math.ceil(words.length / 2);
+  const line1 = encodeURIComponent(words.slice(0, middle).join(' '));
+  const line2 = encodeURIComponent(words.slice(middle).join(' '));
+  
+  // %0A is the Cloudinary code for a "Hard Return" (New Line)
+  return `${line1}%0A${line2}`;
+};
+
+/**
+ * Generates the final Pinterest Pin URL.
+ * Features: Auto-Subject Crop, Contrast Protection, and Smart Text Wrapping.
+ */
+export const generatePinUrl = (imageUrl, text, theme = 'dark', font = 'Inter') => {
+  const publicId = encodeURIComponent(imageUrl);
+  
+  // 2. Process Text: Encodes and applies smart line breaks
+  const cleanText = smartLineBreak(text);
+  
+  // 3. Theme & Font Logic
+  const cloudFont = FONT_MAP[font] || 'Inter';
+  const textColor = theme === 'dark' ? 'FFFFFF' : '000000';
+  const borderColor = theme === 'dark' ? 'black' : 'white';
+
+  // 4. Layer Construction
+  // c_fill,g_auto -> Fills 100% of screen, centers subject.
+  const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto`;
+
+  // e_sharpen:60 -> Crisp details without artifacts.
+  const visualPolish = `e_improve,e_sharpen:60,q_auto,f_auto`;
+
+  // bo_4px_solid -> Adds contrast stroke.
+  // line_spacing_-10 -> Tightens the gap between the two lines of text.
+  const textLayer = `l_text:${cloudFont}_100_bold_center:${cleanText},co_rgb:${textColor},bo_4px_solid_${borderColor},line_spacing_-10,o_90,w_900,c_fit/fl_layer_apply,g_north,y_250`;
+
+  return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${textLayer}/${publicId}`;
+};
