@@ -11,7 +11,9 @@ const FONT_MAP = {
 
 const smartLineBreak = (text) => {
   if (!text) return "";
-  const upperText = text.toUpperCase();
+  // Remove any hashtags or markdown that might break rendering
+  const cleanText = text.replace(/#/g, '').replace(/\*/g, '').trim(); 
+  const upperText = cleanText.toUpperCase();
   const words = upperText.split(' ');
 
   if (words.length <= 3) return encodeURIComponent(upperText);
@@ -24,21 +26,23 @@ const smartLineBreak = (text) => {
 };
 
 const generatePinUrl = (imageUrl, text, theme = 'dark', font = 'Inter') => {
-  const publicId = encodeURIComponent(imageUrl);
+  // FIX 1: Clean the Pexels URL. Remove everything after '?'.
+  // This prevents 400 Errors caused by long/messy query strings.
+  const cleanImageUrl = imageUrl.split('?')[0];
+  const publicId = encodeURIComponent(cleanImageUrl);
+  
   const cleanText = smartLineBreak(text);
   
   const cloudFont = FONT_MAP[font] || 'Roboto';
   
-  // FIX: Cloudinary border param (bo_) requires a named color or 'rgb:xxxxxx'.
-  // We use 'black' to be safe.
+  // FIX 2: Use strict 'rgb:000000' for the border. Named colors can sometimes fail.
   const textColor = 'FFFFFF'; 
-  const borderColor = 'black'; 
+  const borderColor = 'rgb:000000'; 
 
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto`;
   const visualPolish = `e_improve,e_sharpen:60,q_auto,f_auto`;
 
-  // co_rgb:${textColor} -> co_rgb:FFFFFF (Valid)
-  // bo_8px_solid_${borderColor} -> bo_8px_solid_black (Valid)
+  // g_auto: Avoids faces and high-saliency areas
   const textLayer = `l_text:${cloudFont}_100_bold_line_spacing_-10_center:${cleanText},co_rgb:${textColor},bo_8px_solid_${borderColor},o_100,w_900,c_fit/fl_layer_apply,g_auto`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${textLayer}/${publicId}`;
