@@ -9,54 +9,72 @@ cloudinary.config({
 
 async function getImages(query, pinHook) {
   try {
-    // 1. Get landscape image for Blogger
-    const landscapeRes = await axios.get(`https://api.pexels.com/v1/search?query=${query}&orientation=landscape&per_page=1`, {
-      headers: { Authorization: process.env.PEXELS_API_KEY }
-    });
-    const bloggerImage = landscapeRes.data.photos[0]?.src.large2x;
+    // 1. SAFETY FILTER: Sanitize the AI's query
+    // Take first 3 words only and remove special characters
+    const safeQuery = query.split(' ').slice(0, 3).join(' ').replace(/[^a-zA-Z0-9 ]/g, "");
+    console.log(`Searching Pexels for safe query: "${safeQuery}"`);
 
-    // 2. Get NATIVE PORTRAIT image for Pinterest
-    const portraitRes = await axios.get(`https://api.pexels.com/v1/search?query=${query}&orientation=portrait&per_page=1`, {
+    // 2. Get Landscape Image (for Blogger)
+    const landscapeRes = await axios.get(`https://api.pexels.com/v1/search?query=${safeQuery}&orientation=landscape&per_page=1`, {
       headers: { Authorization: process.env.PEXELS_API_KEY }
     });
     
-    // We use the .src.portrait which is exactly 800x1200
+    // Fallback if no image found
+    const bloggerImage = landscapeRes.data.photos[0]?.src.large2x || "https://via.placeholder.com/800x600?text=No+Image";
+
+    // 3. Get Portrait Image (for Pinterest)
+    const portraitRes = await axios.get(`https://api.pexels.com/v1/search?query=${safeQuery}&orientation=portrait&per_page=1`, {
+      headers: { Authorization: process.env.PEXELS_API_KEY }
+    });
+    
+    // Use .portrait (800x1200) for perfect quality
     const rawPinterestImage = portraitRes.data.photos[0]?.src.portrait;
 
-    if (!rawPinterestImage) throw new Error("No portrait image found on Pexels");
+    let pinterestImage = null;
+    if (rawPinterestImage && pinHook) {
+        const cleanHook = encodeURIComponent(pinHook.toUpperCase());
+        
+        // 4. Create Pinterest "Sticker" Design
+        pinterestImage = cloudinary.url(rawPinterestImage, {
+          type: "fetch",
+          transformation: [
+            { effect: "brightness_speed:-10" }, // Slight dim for contrast
+            // Black Box (The Sticker)
+            {
+              underlay: { background: "black", opacity: 80 },
+              width: "0.9", // 90% of image width
+              height: 200,
+              gravity: "south",
+              y: 100
+            },
+            // Text (The Hook)
+            { 
+              color: "white",
+              overlay: { 
+                font_family: "Inter", 
+                font_size: 55, 
+                font_weight: "bold", 
+                text: cleanHook,
+                text_align: "center"
+              },
+              width: "0.8", // Keep text inside the box
+              crop: "fit",
+              gravity: "south",
+              y: 160 
+            }
+          ]
+        });
+    }
 
-    // 3. Add Sticker Overlay (NO CROP, NO SHRINK)
-    const cleanHook = encodeURIComponent(pinHook.toUpperCase());
-    const pinterestImage = cloudinary.url(rawPinterestImage, {
-      type: "fetch",
-      transformation: [
-        // We removed width/height/crop here to keep native pixels
-        { effect: "brightness_speed:-5" }, 
-        {
-          underlay: { background: "black", opacity: 75 },
-          width: "0.9", // Uses 90% of the image width automatically
-          height: 180,
-          gravity: "south",
-          y: 80
-        },
-        { 
-          color: "white",
-          overlay: { 
-            font_family: "Inter", 
-            font_size: 50, 
-            font_weight: "bold", 
-            text: cleanHook 
-          },
-          gravity: "south",
-          y: 130 
-        }
-      ]
-    });
+    return { bloggerImage, pinterestImage: pinterestImage || bloggerImage };
 
-    return { bloggerImage, pinterestImage };
   } catch (error) {
     console.error("Image Service Error:", error.message);
-    throw error;
+    // Return placeholders so the bot doesn't crash completely
+    return { 
+        bloggerImage: "https://via.placeholder.com/800x600?text=Error", 
+        pinterestImage: "https://via.placeholder.com/800x1200?text=Error" 
+    };
   }
 }
 
