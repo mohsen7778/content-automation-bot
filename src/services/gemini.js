@@ -28,7 +28,7 @@ Category ||| Title ||| Intro ||| Quote ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_B
       {
         inputs: prompt,
         parameters: {
-          max_new_tokens: 400, // Stability setting
+          max_new_tokens: 300, // Stability setting
           return_full_text: false, // Don't repeat the prompt
           temperature: 0.7
         }
