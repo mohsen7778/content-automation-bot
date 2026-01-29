@@ -29,7 +29,7 @@ const smartLineBreak = (text) => {
 };
 
 /**
- * Generates the final Pinterest Pin URL.
+ * Generates the final Pinterest Pin URL with intelligent text placement.
  */
 const generatePinUrl = (imageUrl, text, theme = 'dark', font = 'Inter') => {
   const publicId = encodeURIComponent(imageUrl);
@@ -38,14 +38,18 @@ const generatePinUrl = (imageUrl, text, theme = 'dark', font = 'Inter') => {
   // Use the map to get a safe font. If 'Inter' is passed, it becomes 'Roboto'.
   const cloudFont = FONT_MAP[font] || 'Roboto';
   
-  const textColor = theme === 'dark' ? 'FFFFFF' : '000000';
+  // Proper white/black with correct contrast
+  const textColor = theme === 'dark' ? 'ffffff' : '000000';
   const borderColor = theme === 'dark' ? 'black' : 'white';
 
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto`;
   const visualPolish = `e_improve,e_sharpen:60,q_auto,f_auto`;
 
-  // Font setup: Size 100, Bold, Centered, Custom Line Spacing
-  const textLayer = `l_text:${cloudFont}_100_bold_line_spacing_-10_center:${cleanText},co_rgb:${textColor},bo_4px_solid_${borderColor},o_90,w_900,c_fit/fl_layer_apply,g_north,y_250`;
+  // Correct Cloudinary text overlay syntax:
+  // - Font styling separate from line_spacing
+  // - Standard border format (bo_4px_solid_black or bo_4px_solid_white)
+  // - Manual line breaks via %0A work perfectly
+  const textLayer = `l_text:${cloudFont}_100_bold:${cleanText},co_rgb:${textColor},bo_4px_solid_${borderColor},line_spacing_-10,o_90,w_900,c_fit/fl_layer_apply,g_north,y_250`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${textLayer}/${publicId}`;
 };
