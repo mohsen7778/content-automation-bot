@@ -11,7 +11,7 @@ async function runBot() {
 
     const content = await generateContent(topic);
     
-    // Pass pinHook for the "Sticker" design
+    console.log(`🎨 Fetching images for: ${content.imagePrompt}`);
     const { bloggerImage, pinterestImage } = await getImages(content.imagePrompt, content.pinHook);
 
     const blogData = {
@@ -23,11 +23,12 @@ async function runBot() {
         featuredImage: bloggerImage
     };
 
+    console.log("📤 Posting to Blogger...");
     const blogUrl = await postToBlogger(blogData);
-    console.log(`✅ Post live: ${blogUrl}`);
+    console.log(`✅ Success! ${blogUrl}`);
 
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
-      const message = `📝 *New Post Published!* \n"${content.title}" \n\n🔗 [Read Online](${blogUrl})`;
+      const message = `📝 *New Post:* "${content.title}" \n\n🔗 [Link](${blogUrl})`;
       
       await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
         chat_id: process.env.TELEGRAM_CHAT_ID,
@@ -39,7 +40,7 @@ async function runBot() {
           await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
             chat_id: process.env.TELEGRAM_CHAT_ID,
             photo: pinterestImage,
-            caption: `📌 Pinterest Design Ready: ${content.pinHook}`
+            caption: `📌 Pinterest: ${content.pinHook}`
           });
       }
     }
