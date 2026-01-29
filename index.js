@@ -1,3 +1,4 @@
+// index.js
 require('dotenv').config();
 const { getTopic } = require('./src/services/topics');
 const { generateContent } = require('./src/services/gemini');
@@ -23,19 +24,24 @@ async function runBot() {
 
     const content = await generateContent(topic);
 
-    // 1. Find Image
+    // 1. Find BOTH Images (Landscape & Portrait)
     console.log(`📷 Searching Pexels for: ${content.imagePrompt}...`);
-    const rawImageUrl = await getImages(content.imagePrompt);
-    if (!rawImageUrl) throw new Error("No image found on Pexels");
+    const { landscapeUrl, portraitUrl } = await getImages(content.imagePrompt);
 
-    // 2. Assign Images (STRICT RULE APPLIED)
-    // Blogger = Raw Pexels URL (No editing, no crop)
-    const bloggerImage = rawImageUrl; 
-    
-    // Pinterest/Telegram = Cloudinary Edited URL (Crop + Text Hook)
-    const pinterestImage = generatePinUrl(rawImageUrl, content.pinHook, "dark", "Inter");
+    // Ensure we have both before proceeding
+    if (!landscapeUrl) throw new Error("Failed to find a landscape image for Blogger.");
+    if (!portraitUrl) throw new Error("Failed to find a portrait image for Telegram.");
 
-    // 3. Post to Blogger (Using Raw Image)
+
+    // 2. Assign Images
+    // Blogger = Raw Horizontal Image
+    const bloggerImage = landscapeUrl;
+
+    // Pinterest/Telegram = Edited Vertical Image
+    const pinterestImage = generatePinUrl(portraitUrl, content.pinHook, "dark", "Inter");
+
+
+    // 3. Post to Blogger (Using Raw Horizontal Image)
     const bodyWithImage = `
         <div style="text-align: center; margin-bottom: 20px;">
             <img src="${bloggerImage}" style="max-width: 100%; border-radius: 10px;" alt="${content.title}" />
@@ -51,7 +57,7 @@ async function runBot() {
 
     console.log(`✅ Blog live: ${blogUrl}`);
 
-    // 4. Telegram Notification (Using Edited Pinterest Image)
+    // 4. Telegram Notification (Using Edited Vertical Image)
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -60,10 +66,11 @@ async function runBot() {
       console.log("📱 Downloading Pinterest image for Telegram...");
 
       try {
-        const response = await axios({ 
-            url: pinterestImage, // Downloads the EDITED version
-            method: 'GET', 
-            responseType: 'stream' 
+        // Download the Cloudinary-edited image
+        const response = await axios({
+            url: pinterestImage,
+            method: 'GET',
+            responseType: 'stream'
         });
 
         const writer = fs.createWriteStream(tempPath);
