@@ -2,8 +2,6 @@ const axios = require("axios");
 
 async function getImages(imagePrompt, pinHook) {
   try {
-    console.log(`🎨 Fetching native orientation images for: "${imagePrompt}"`);
-    
     const [horizontal, vertical] = await Promise.all([
       axios.get(`https://api.pexels.com/v1/search?query=${encodeURIComponent(imagePrompt)}&orientation=landscape&per_page=1`, {
         headers: { Authorization: process.env.PEXELS_API_KEY }
@@ -19,14 +17,14 @@ async function getImages(imagePrompt, pinHook) {
     const cleanHook = encodeURIComponent(pinHook.replace(/[^a-zA-Z0-9 ]/g, ''));
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
 
-    // AI Positioned Pinterest Image (No forced crop)
+    // ADDED: f_jpg,q_auto to make the file size smaller for Telegram
     const pinterestImage = `https://res.cloudinary.com/${cloudName}/image/fetch/` +
-      `w_1000,h_500,c_fill,b_black,o_60,l_text:Verdana_80_bold_center:${cleanHook}/` +
-      `fl_layer_apply,g_auto/` + 
+      `w_1000,h_1500,c_fill,f_jpg,q_auto/` + 
+      `co_white,b_black,o_70,l_text:Arial_80_bold_center:${cleanHook}/` +
+      `fl_layer_apply,g_south,y_150/` +
       `${pexelsVerticalUrl}`;
 
     return { bloggerImage, pinterestImage };
-
   } catch (error) {
     console.error(`❌ Image Service Error: ${error.message}`);
     const fallback = "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg";
