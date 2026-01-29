@@ -1,17 +1,22 @@
 name: Automated Content Bot
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:      # Manual run button only
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # CRITICAL: These permissions allow the bot to talk to AI and save history
     permissions:
-      contents: write
+      contents: write     # Required to push state.json back to your repo
+      models: read        # Required to use GitHub Models (Grok/Llama/GPT)
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -23,18 +28,28 @@ jobs:
 
     - name: Run Bot
       env:
+        # AI PROVIDER: Using GitHub's built-in token
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        # BLOGGER OAUTH KEYS
         BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
         BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
         BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
         BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
-        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+
+        # IMAGES (Cloudinary & Pexels)
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
         CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
         CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        
+        # TELEGRAM
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        
+        # FIREBASE (If used)
         GOOGLE_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      
       run: node index.js
 
     - name: Save History
@@ -42,5 +57,5 @@ jobs:
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
         git add data/state.json
-        git commit -m "Cycle topic [skip ci]" || echo "No changes"
+        git commit -m "Cycle topic [skip ci]" || echo "No changes to save"
         git push
