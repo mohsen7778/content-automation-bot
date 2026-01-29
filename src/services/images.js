@@ -11,7 +11,7 @@ const FONT_MAP = {
 
 const smartLineBreak = (text) => {
   if (!text) return "";
-  // Remove any hashtags or markdown that might break rendering
+  // Remove hashtags/markdown to prevent rendering issues
   const cleanText = text.replace(/#/g, '').replace(/\*/g, '').trim(); 
   const upperText = cleanText.toUpperCase();
   const words = upperText.split(' ');
@@ -26,24 +26,26 @@ const smartLineBreak = (text) => {
 };
 
 const generatePinUrl = (imageUrl, text, theme = 'dark', font = 'Inter') => {
-  // FIX 1: Clean the Pexels URL. Remove everything after '?'.
-  // This prevents 400 Errors caused by long/messy query strings.
+  // 1. Clean Pexels URL (remove query params)
   const cleanImageUrl = imageUrl.split('?')[0];
   const publicId = encodeURIComponent(cleanImageUrl);
   
   const cleanText = smartLineBreak(text);
-  
   const cloudFont = FONT_MAP[font] || 'Roboto';
   
-  // FIX 2: Use strict 'rgb:000000' for the border. Named colors can sometimes fail.
+  // 2. Strict Colors
   const textColor = 'FFFFFF'; 
-  const borderColor = 'rgb:000000'; 
+  const borderColor = 'black'; 
 
+  // 3. Base Image Transformation (Cropping)
+  // c_fill,g_auto IS VALID here. It crops the image to focus on the subject.
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto`;
   const visualPolish = `e_improve,e_sharpen:60,q_auto,f_auto`;
 
-  // g_auto: Avoids faces and high-saliency areas
-  const textLayer = `l_text:${cloudFont}_100_bold_line_spacing_-10_center:${cleanText},co_rgb:${textColor},bo_8px_solid_${borderColor},o_100,w_900,c_fit/fl_layer_apply,g_auto`;
+  // 4. Text Layer Transformation
+  // ERROR WAS HERE: 'g_auto' is forbidden for text overlays.
+  // FIX: Switched to 'g_north' (Top) with 'y_250' (Margin) for safe placement.
+  const textLayer = `l_text:${cloudFont}_100_bold_line_spacing_-10_center:${cleanText},co_rgb:${textColor},bo_8px_solid_${borderColor},o_100,w_900,c_fit/fl_layer_apply,g_north,y_250`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${textLayer}/${publicId}`;
 };
