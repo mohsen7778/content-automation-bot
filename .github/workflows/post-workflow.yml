@@ -1,7 +1,7 @@
-Name: Automated Content Bot
+name: Automated Content Bot
 
 on:
-  workflow_dispatch:      # Allows manual run button only
+  workflow_dispatch:      # Manual trigger only
 
 jobs:
   build:
@@ -13,6 +13,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0    # Ensures the history is available for git push
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -24,26 +26,17 @@ jobs:
 
     - name: Run Bot
       env:
-        # BLOGGER OAUTH KEYS
         BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
         BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
         BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
         BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
-        
-        # GEMINI
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-
-        # IMAGES (Cloudinary & Pexels)
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
         CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
         CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-        
-        # TELEGRAM
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        
-        # FIREBASE
         GOOGLE_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       run: node index.js
 
