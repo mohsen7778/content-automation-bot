@@ -4,7 +4,6 @@ const PINTEREST_WIDTH = 1080;
 const PINTEREST_HEIGHT = 1620;
 
 // 1. SAFETY FIX: Mapped to Cloudinary-supported fonts
-// 'Inter' is not supported by default. We MUST map it to 'Roboto'.
 const FONT_MAP = {
   'Inter': 'Roboto', 
   'Source Sans Pro': 'Arial',
@@ -29,27 +28,29 @@ const smartLineBreak = (text) => {
 };
 
 /**
- * Generates the final Pinterest Pin URL with intelligent text placement.
+ * Generates the final Pinterest Pin URL.
+ * Updated for Smart Placement (Avoids Faces) and High Contrast.
  */
 const generatePinUrl = (imageUrl, text, theme = 'dark', font = 'Inter') => {
   const publicId = encodeURIComponent(imageUrl);
   const cleanText = smartLineBreak(text);
   
-  // Use the map to get a safe font. If 'Inter' is passed, it becomes 'Roboto'.
+  // Use the map to get a safe font.
   const cloudFont = FONT_MAP[font] || 'Roboto';
   
-  // Proper white/black with correct contrast
-  const textColor = theme === 'dark' ? 'ffffff' : '000000';
-  const borderColor = theme === 'dark' ? 'black' : 'white';
+  // 1. COLOR LOGIC: Force "Proper White" with Black Outline
+  // This ensures visibility on BOTH white and dark backgrounds.
+  const textColor = 'FFFFFF';
+  const borderColor = '000000'; // Black border creates contrast on bright spots
 
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto`;
   const visualPolish = `e_improve,e_sharpen:60,q_auto,f_auto`;
 
-  // Correct Cloudinary text overlay syntax:
-  // - Font styling separate from line_spacing
-  // - Standard border format (bo_4px_solid_black or bo_4px_solid_white)
-  // - Manual line breaks via %0A work perfectly
-  const textLayer = `l_text:${cloudFont}_100_bold:${cleanText},co_rgb:${textColor},bo_4px_solid_${borderColor},line_spacing_-10,o_90,w_900,c_fit/fl_layer_apply,g_north,y_250`;
+  // 2. TEXT LAYER LOGIC
+  // - co_rgb:${textColor}: Pure White
+  // - bo_8px_solid_${borderColor}: Thick black border (Solving the "white background" visibility issue)
+  // - g_auto: SMART PLACEMENT. Scans image for empty space, avoiding faces and high-detail subjects.
+  const textLayer = `l_text:${cloudFont}_100_bold_line_spacing_-10_center:${cleanText},co_rgb:${textColor},bo_8px_solid_${borderColor},o_100,w_900,c_fit/fl_layer_apply,g_auto`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${textLayer}/${publicId}`;
 };
