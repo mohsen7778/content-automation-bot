@@ -1,21 +1,19 @@
 const axios = require("axios");
 
 async function generateContent(specificNiche) {
-  // FASTEST FREE MODELS (Prioritizing speed over "smartness")
+  // YOUR SELECTED MODELS
   const models = [
-    "meta-llama/llama-3-8b-instruct:free",    // Fast & Reliable
-    "mistralai/mistral-7b-instruct:free",     // Solid backup
-    "microsoft/phi-3-mini-128k-instruct:free",// Very fast
-    "google/gemini-2.0-flash-exp:free"        // Smart but often busy
+    "google/gemini-2.0-flash-exp:free",
+    "deepseek/deepseek-r1:free",
+    "google/gemma-2-27b-it:free"
   ];
 
   let lastError = null;
 
   for (const model of models) {
     try {
-      console.log(`\nAttempting with: ${model}...`);
+      console.log(`\n⏳ Waiting for ${model}... (This may take 1-2 mins)`);
       
-      // --- LITE PROMPT (Compressed for Speed) ---
       const prompt = `
 Topic: ${specificNiche}
 Format: 7 parts separated by "|||".
@@ -25,7 +23,6 @@ Rules:
 1. PIN_HOOK: 3-5 aggressive words (e.g. "STOP WASTING MONEY").
 2. IMAGE_KEYWORD: 2 words max (e.g. "modern kitchen"). NO punctuation.
 3. HTML_BODY: Use <p> and <h2> tags only. Keep it short (300 words).
-4. No conversational filler. Just the content.
 
 Output ONLY the 7 parts joined by |||.
 `;
@@ -43,11 +40,11 @@ Output ONLY the 7 parts joined by |||.
             "HTTP-Referer": "https://github.com/content-automation-bot",
             "X-Title": "Content Bot"
           },
-          timeout: 40000 // 40 seconds
+          // CHANGED: Increased from 50,000 to 180,000 (3 Minutes)
+          timeout: 180000 
         }
       );
 
-      // Check for valid response
       if (!response.data?.choices?.[0]?.message?.content) {
         throw new Error("Empty response");
       }
@@ -55,10 +52,9 @@ Output ONLY the 7 parts joined by |||.
       const text = response.data.choices[0].message.content.trim();
       const parts = text.split("|||").map(p => p.trim());
 
-      // FAIL-SAFE: If AI missed a section, use placeholders so bot doesn't crash
+      // FAIL-SAFE PATCHING
       if (parts.length < 7) {
-        console.warn(`⚠️ Model ${model} missed sections. Found ${parts.length}. Trying to patch...`);
-        // We ensure we return *something* even if imperfect
+        console.warn(`⚠️ Model ${model} missed sections. Patching...`);
         return {
           category: parts[0] || "General",
           title: parts[1] || specificNiche,
@@ -83,8 +79,9 @@ Output ONLY the 7 parts joined by |||.
       };
 
     } catch (error) {
-      const status = error.response?.status || 'N/A';
-      const msg = error.response?.data?.error?.message || error.message;
+      // If it's a timeout, it will explicitly say "ETIMEDOUT" or "timeout"
+      const status = error.code === 'ECONNABORTED' ? 'TIMEOUT' : (error.response?.status || 'Error');
+      const msg = error.message;
       console.warn(`❌ ${model} failed (${status}): ${msg}`);
       lastError = msg;
     }
