@@ -27,21 +27,36 @@ async function runBot() {
     const blogUrl = await postToBlogger(blogData);
     console.log(`✅ Success! ${blogUrl}`);
 
+    // --- TELEGRAM NOTIFICATION SECTION ---
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
-      const message = `📝 *New Post:* "${content.title}" \n\n🔗 [Link](${blogUrl})`;
-      
-      await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        chat_id: process.env.TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: 'Markdown'
-      });
+      try {
+        const message = `📝 *New Post:* "${content.title}" \n\n🔗 [Link](${blogUrl})`;
+        
+        await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          chat_id: process.env.TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: 'Markdown'
+        });
 
-      if (pinterestImage) {
-          await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-            chat_id: process.env.TELEGRAM_CHAT_ID,
-            photo: pinterestImage,
-            caption: `📌 Pinterest: ${content.pinHook}`
-          });
+        if (pinterestImage) {
+            console.log("📱 Sending Pinterest Image to Telegram...");
+            // Use a try-catch specifically for the photo in case the URL is too long
+            await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+              chat_id: process.env.TELEGRAM_CHAT_ID,
+              photo: pinterestImage,
+              caption: `📌 Pinterest: ${content.pinHook}`
+            }).catch(async (err) => {
+                console.warn("⚠️ Complex image failed for Telegram, sending clean image instead.");
+                // Fallback: Send the clean Pexels image if the Cloudinary one is too complex
+                await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                  chat_id: process.env.TELEGRAM_CHAT_ID,
+                  photo: bloggerImage,
+                  caption: `📌 Pinterest: ${content.pinHook} (Clean Version)`
+                });
+            });
+        }
+      } catch (tgError) {
+        console.error("⚠️ Telegram Notification failed, but Blog is live:", tgError.message);
       }
     }
 
