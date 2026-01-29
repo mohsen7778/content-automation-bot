@@ -14,10 +14,10 @@ async function getImages(imagePrompt, pinHook) {
     const bloggerImage = horizontal.data.photos[0]?.src?.large2x || "";
     const pexelsVerticalUrl = vertical.data.photos[0]?.src?.large2x || "";
     
-    const cleanHook = encodeURIComponent(pinHook.replace(/[^a-zA-Z0-9 ]/g, ''));
+    // Clean hook for URL safety
+    const cleanHook = encodeURIComponent(pinHook.replace(/[^a-zA-Z0-9 ]/g, ' '));
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
 
-    // ADDED: f_jpg,q_auto to make the file size smaller for Telegram
     const pinterestImage = `https://res.cloudinary.com/${cloudName}/image/fetch/` +
       `w_1000,h_1500,c_fill,f_jpg,q_auto/` + 
       `co_white,b_black,o_70,l_text:Arial_80_bold_center:${cleanHook}/` +
