@@ -1,4 +1,3 @@
-// index.js
 require('dotenv').config();
 const { getTopic } = require('./src/services/topics');
 const { generateContent } = require('./src/services/gemini');
@@ -28,36 +27,23 @@ async function runBot() {
     console.log(`📷 Searching Pexels for: ${content.imagePrompt}...`);
     const { landscapeUrl, portraitUrl } = await getImages(content.imagePrompt);
 
-    // Ensure we have both before proceeding
-    if (!landscapeUrl) throw new Error("Failed to find a landscape image for Blogger.");
-    if (!portraitUrl) throw new Error("Failed to find a portrait image for Telegram.");
-
-
     // 2. Assign Images
     // Blogger = Raw Horizontal Image
     const bloggerImage = landscapeUrl;
-
     // Pinterest/Telegram = Edited Vertical Image
     const pinterestImage = generatePinUrl(portraitUrl, content.pinHook, "dark", "Inter");
 
-
-    // 3. Post to Blogger (Using Raw Horizontal Image)
-    const bodyWithImage = `
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="${bloggerImage}" style="max-width: 100%; border-radius: 10px;" alt="${content.title}" />
-        </div>
-        ${content.body}
-    `;
-
+    // 3. Post to Blogger
+    // FIX APPLIED: Removed manual <img> tag injection to prevent duplicate images.
     const blogUrl = await postToBlogger({
         ...content,
-        body: bodyWithImage,
-        featuredImage: bloggerImage
+        body: content.body, // Pass raw text only
+        featuredImage: bloggerImage // Let the script/theme handle the image
     });
 
     console.log(`✅ Blog live: ${blogUrl}`);
 
-    // 4. Telegram Notification (Using Edited Vertical Image)
+    // 4. Telegram Notification
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -66,11 +52,10 @@ async function runBot() {
       console.log("📱 Downloading Pinterest image for Telegram...");
 
       try {
-        // Download the Cloudinary-edited image
-        const response = await axios({
-            url: pinterestImage,
-            method: 'GET',
-            responseType: 'stream'
+        const response = await axios({ 
+            url: pinterestImage, 
+            method: 'GET', 
+            responseType: 'stream' 
         });
 
         const writer = fs.createWriteStream(tempPath);
