@@ -2,7 +2,7 @@ const axios = require("axios");
 
 async function generateContent(specificNiche) {
   // CORRECT URL provided by you
-  const MODEL_URL = "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3";
+  const MODEL_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-small";
 
   try {
     console.log(`\n🔌 Connecting to Hugging Face (${MODEL_URL})...`);
@@ -28,7 +28,7 @@ Category ||| Title ||| Intro ||| Quote ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_B
       {
         inputs: prompt,
         parameters: {
-          max_new_tokens: 600, // Stability setting
+          max_new_tokens: 400, // Stability setting
           return_full_text: false, // Don't repeat the prompt
           temperature: 0.7
         }
