@@ -3,7 +3,7 @@ const axios = require("axios");
 async function generateContent(specificNiche) {
   const API_URL = "https://models.inference.ai.azure.com/chat/completions";
   
-  // SWITCHED: From grok-3-mini to gpt-4o-mini for guaranteed access
+  // Using gpt-4o-mini via GitHub Models
   const MODEL_ID = "gpt-4o-mini"; 
 
   try {
@@ -13,11 +13,19 @@ async function generateContent(specificNiche) {
       throw new Error("GITHUB_TOKEN is missing.");
     }
     
+    // UPDATED PROMPT:
+    // 1. Changed "CATEGORY" to "NICHE_NAME" to stop AI from writing "Category: ..."
+    // 2. Added explicit rule "Do NOT include labels"
     const prompt = `
 Topic: "${specificNiche}"
 STRICT FORMAT: Return 7 sections separated by "|||".
-Order: CATEGORY ||| TITLE ||| INTRO ||| QUOTE ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_BODY
-RULES: Human tone. PIN_HOOK 3-5 words. HTML_BODY use <p> and <h2> only.
+Order: NICHE_NAME ||| BLOG_TITLE ||| INTRO ||| QUOTE ||| PIN_HOOK ||| IMAGE_KEYWORD ||| HTML_BODY
+
+RULES: 
+1. Do NOT include labels (e.g. Do NOT write "Category: Mindfulness", just write "Mindfulness").
+2. PIN_HOOK: 3-5 words max.
+3. HTML_BODY: Use <p> and <h2> tags only. No markdown formatting.
+4. NICHE_NAME: A short 1-2 word category name.
 `;
 
     const response = await axios.post(
@@ -25,10 +33,10 @@ RULES: Human tone. PIN_HOOK 3-5 words. HTML_BODY use <p> and <h2> only.
       {
         model: MODEL_ID,
         messages: [
-          { role: "system", content: "You are a professional blogger." },
+          { role: "system", content: "You are a professional blogger. Output raw text separated by delimiters only." },
           { role: "user", content: prompt }
         ],
-        max_tokens: 1000,
+        max_tokens: 1500,
         temperature: 0.8
       },
       {
@@ -40,7 +48,6 @@ RULES: Human tone. PIN_HOOK 3-5 words. HTML_BODY use <p> and <h2> only.
       }
     );
 
-    // GPT-4o-mini is very reliable with this response structure
     if (!response.data?.choices?.[0]?.message?.content) {
       throw new Error(`API returned status ${response.status} but no content.`);
     }
@@ -49,7 +56,7 @@ RULES: Human tone. PIN_HOOK 3-5 words. HTML_BODY use <p> and <h2> only.
     const parts = text.split("|||").map(p => p.trim());
 
     if (parts.length < 7) {
-      console.warn("⚠️ Formatting mismatch. Patching...");
+      console.warn("⚠️ Formatting mismatch. Attempting to patch...");
       return {
         category: parts[0] || "Lifestyle",
         title: parts[1] || specificNiche,
@@ -61,10 +68,21 @@ RULES: Human tone. PIN_HOOK 3-5 words. HTML_BODY use <p> and <h2> only.
       };
     }
 
+    // SAFETY CLEANING:
+    // This removes "Category:" or "Title:" if the AI accidentally adds it despite instructions.
+    const cleanCategory = parts[0].replace(/^(Category|Topic|Niche):\s*/i, "").replace(/\*/g, "");
+    const cleanTitle = parts[1].replace(/^(Title|Blog Title):\s*/i, "").replace(/"/g, "");
+
     console.log(`✅ Success with ${MODEL_ID}`);
+    
     return { 
-      category: parts[0], title: parts[1], intro: parts[2],
-      quote: parts[3], pinHook: parts[4], imagePrompt: parts[5], body: parts[6] 
+      category: cleanCategory, 
+      title: cleanTitle, 
+      intro: parts[2],
+      quote: parts[3], 
+      pinHook: parts[4], 
+      imagePrompt: parts[5], 
+      body: parts[6] 
     };
 
   } catch (error) {
