@@ -1,15 +1,18 @@
 const axios = require("axios");
 
 async function generateContent(specificNiche) {
-  // VERIFIED OFFICIAL 2026 ENDPOINT
-  const API_URL = "https://api.deepseek.com/chat/completions";
-  const MODEL_ID = "deepseek-chat"; 
+  // OFFICIAL GITHUB MODELS ENDPOINT
+  const API_URL = "https://models.inference.ai.azure.com/chat/completions";
+  
+  // NOTE: Ensure this is the exact string from the GitHub Marketplace. 
+  // Common IDs are "gpt-4o-mini" or "meta-llama-3-8b-instruct".
+  const MODEL_ID = "grok-3-mini"; 
 
   try {
-    console.log(`\n🔌 Connecting to Official DeepSeek API (${MODEL_ID})...`);
+    console.log(`\n🔌 Connecting to GitHub Models (${MODEL_ID})...`);
 
-    if (!process.env.DEEPSEEK_API_KEY) {
-      throw new Error("DEEPSEEK_API_KEY is missing from GitHub Secrets.");
+    if (!process.env.GITHUB_TOKEN) {
+      throw new Error("GITHUB_TOKEN is missing from environment variables.");
     }
     
     const prompt = `
@@ -25,7 +28,7 @@ Human blogger tone. Use contractions. No AI clichés (delve, tapestry, landscape
 SPECIFIC SECTION RULES:
 - PIN_HOOK: 3-5 aggressive Pinterest hook words (e.g., "STOP BUYING TRASH").
 - IMAGE_KEYWORD: EXACTLY 2 words for search. NO punctuation.
-- HTML_BODY: Roughly 300 words. Use ONLY <p> and <h2> tags.
+- HTML_BODY: Roughly 200 words. Use ONLY <p> and <h2> tags.
 
 Output ONLY the 7 sections separated by |||.
 `;
@@ -38,28 +41,34 @@ Output ONLY the 7 sections separated by |||.
           { role: "system", content: "You are a professional human blogger." },
           { role: "user", content: prompt }
         ],
-        max_tokens: 1200,
-        temperature: 1.1, 
-        response_format: { type: "text" } 
+        max_tokens: 1000,
+        temperature: 0.8,
+        top_p: 1.0
       },
       {
         headers: {
-          "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          // GitHub Models uses your PAT or the workflow GITHUB_TOKEN
+          "Authorization": `Bearer ${process.env.GITHUB_TOKEN}`,
           "Content-Type": "application/json"
         },
-        timeout: 90000 
+        timeout: 60000 
       }
     );
+
+    if (!response.data || !response.data.choices || !response.data.choices[0]) {
+      throw new Error("Empty response from GitHub Models API");
+    }
 
     const text = response.data.choices[0].message.content.trim();
     const parts = text.split("|||").map(p => p.trim());
 
+    // FAIL-SAFE
     if (parts.length < 7) {
       console.warn(`⚠️ Parts mismatch (${parts.length}/7). Patching...`);
       return {
         category: parts[0] || "Lifestyle",
         title: parts[1] || specificNiche,
-        intro: parts[2] || "Check out these great ideas.",
+        intro: parts[2] || "Here is a guide on this topic.",
         quote: parts[3] || "Consistency is the key to results.",
         pinHook: parts[4] || "START TODAY", 
         imagePrompt: parts[5] || "lifestyle",
@@ -67,7 +76,7 @@ Output ONLY the 7 sections separated by |||.
       };
     }
 
-    console.log("✅ Content generated via DeepSeek.");
+    console.log("✅ Success with GitHub Models.");
 
     return { 
       category: parts[0],
@@ -80,9 +89,15 @@ Output ONLY the 7 sections separated by |||.
     };
 
   } catch (error) {
-    const deepSeekError = error.response?.data?.error?.message || error.message;
-    console.error(`❌ DeepSeek API Error: ${deepSeekError}`);
-    throw new Error(`DeepSeek Error: ${deepSeekError}`);
+    const errorMsg = error.response?.data?.error?.message || error.message;
+    console.error(`❌ GitHub Model Error: ${errorMsg}`);
+    
+    // If the model name is wrong, GitHub returns a 404 or 400.
+    if (error.response?.status === 404) {
+        console.error("TIP: Check the GitHub Marketplace for the exact model name.");
+    }
+    
+    throw new Error(`GitHub Models Failed: ${errorMsg}`);
   }
 }
 
