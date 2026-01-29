@@ -4,79 +4,60 @@ const cloudinary = require('cloudinary').v2;
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-function splitText(text, maxCharsPerLine = 20) {
-    const words = text.split(' ');
-    let lines = [];
-    let currentLine = words[0];
-    for (let i = 1; i < words.length; i++) {
-        if (currentLine.length + 1 + words[i].length <= maxCharsPerLine) {
-            currentLine += " " + words[i];
-        } else {
-            lines.push(currentLine);
-            currentLine = words[i];
+async function getImages(query, pinHook) {
+  try {
+    // 1. Get landscape image for Blogger
+    const landscapeRes = await axios.get(`https://api.pexels.com/v1/search?query=${query}&orientation=landscape&per_page=1`, {
+      headers: { Authorization: process.env.PEXELS_API_KEY }
+    });
+    const bloggerImage = landscapeRes.data.photos[0]?.src.large2x;
+
+    // 2. Get NATIVE PORTRAIT image for Pinterest
+    const portraitRes = await axios.get(`https://api.pexels.com/v1/search?query=${query}&orientation=portrait&per_page=1`, {
+      headers: { Authorization: process.env.PEXELS_API_KEY }
+    });
+    
+    // We use the .src.portrait which is exactly 800x1200
+    const rawPinterestImage = portraitRes.data.photos[0]?.src.portrait;
+
+    if (!rawPinterestImage) throw new Error("No portrait image found on Pexels");
+
+    // 3. Add Sticker Overlay (NO CROP, NO SHRINK)
+    const cleanHook = encodeURIComponent(pinHook.toUpperCase());
+    const pinterestImage = cloudinary.url(rawPinterestImage, {
+      type: "fetch",
+      transformation: [
+        // We removed width/height/crop here to keep native pixels
+        { effect: "brightness_speed:-5" }, 
+        {
+          underlay: { background: "black", opacity: 75 },
+          width: "0.9", // Uses 90% of the image width automatically
+          height: 180,
+          gravity: "south",
+          y: 80
+        },
+        { 
+          color: "white",
+          overlay: { 
+            font_family: "Inter", 
+            font_size: 50, 
+            font_weight: "bold", 
+            text: cleanHook 
+          },
+          gravity: "south",
+          y: 130 
         }
-    }
-    lines.push(currentLine);
-    return lines.join("%0A");
-}
+      ]
+    });
 
-async function getImages(query, titleForOverlay) {
-    try {
-        console.log(`Searching Pexels for: ${query}`);
-        const randomPage = Math.floor(Math.random() * 20) + 1;
-
-        // 1. BLOGGER IMAGE: Landscape, Direct Pexels URL (No Cloudinary)
-        const blogResp = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=landscape&page=${randomPage}`, {
-            headers: { Authorization: process.env.PEXELS_API_KEY }
-        });
-        const bloggerImage = blogResp.data.photos[0]?.src?.large || "https://images.pexels.com/photos/262508/pexels-photo-262508.jpeg";
-
-        // 2. PINTEREST IMAGE: Vertical, Portrait
-        const pinResp = await axios.get(`https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=portrait&page=${randomPage}`, {
-            headers: { Authorization: process.env.PEXELS_API_KEY }
-        });
-        const pinRawUrl = pinResp.data.photos[0]?.src?.original; // Using original to avoid quality loss
-
-        // 3. EDIT PINTEREST IMAGE: Text Overlay Only (NO CROP)
-        console.log("Creating Pinterest Design (No Crop)...");
-        const upload = await cloudinary.uploader.upload(pinRawUrl, { folder: "pinterest-designs" });
-        
-        const cleanTitle = titleForOverlay.replace(/[:|]/g, "").split(" ").slice(0, 8).join(" "); 
-        const formattedTitle = splitText(cleanTitle);
-
-        // This creates a text overlay while maintaining the original aspect ratio
-        const pinterestImage = cloudinary.url(upload.public_id, {
-            transformation: [
-                { effect: "brightness:-30" }, // Slight darken so text is readable
-                {
-                    overlay: {
-                        font_family: "Arial",
-                        font_size: 70,
-                        font_weight: "bold",
-                        text_align: "center",
-                        text: formattedTitle
-                    },
-                    color: "#FFFFFF",
-                    width: "0.8", // Text takes 80% of image width
-                    crop: "fit",
-                    gravity: "center"
-                }
-            ]
-        });
-
-        return { bloggerImage, pinterestImage };
-
-    } catch (error) {
-        console.error("Image Error:", error.message);
-        return { 
-            bloggerImage: "https://images.pexels.com/photos/262508/pexels-photo-262508.jpeg",
-            pinterestImage: null
-        };
-    }
+    return { bloggerImage, pinterestImage };
+  } catch (error) {
+    console.error("Image Service Error:", error.message);
+    throw error;
+  }
 }
 
 module.exports = { getImages };
