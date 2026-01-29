@@ -1,9 +1,7 @@
-name: Automated Content Bot
+Name: Automated Content Bot
 
 on:
-  schedule:
-    - cron: '0 */6 * * *' # Runs every 6 hours
-  workflow_dispatch:      # Allows manual run button
+  workflow_dispatch:      # Allows manual run button only
 
 jobs:
   build:
@@ -26,7 +24,7 @@ jobs:
 
     - name: Run Bot
       env:
-        # BLOGGER OAUTH KEYS (These were missing!)
+        # BLOGGER OAUTH KEYS
         BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
         BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
         BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
@@ -45,7 +43,7 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         
-        # FIREBASE (Optional, mapping just in case)
+        # FIREBASE
         GOOGLE_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       run: node index.js
 
