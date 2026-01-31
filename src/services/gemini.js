@@ -1,58 +1,48 @@
-const axios = require("axios");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 async function generateContent(specificNiche) {
-  const API_URL = "https://models.inference.ai.azure.com/chat/completions";
-  const MODEL_ID = "gpt-4o-mini"; 
-
   try {
-    console.log(`\n🔌 Connecting to GitHub Models (${MODEL_ID})...`);
+    console.log(`\n🔌 Connecting to Google Gemini (gemini-2.5-flash)...`);
 
-    if (!process.env.GITHUB_TOKEN) {
-      throw new Error("GITHUB_TOKEN is missing.");
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is missing in .env file.");
     }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // UPDATED PROMPT: Added SUB_HOOK (8 sections)
+    // Using the latest model
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    // 🔥 INTENSIFIED PROMPT: ANTI-AI SMELL INSTRUCTIONS ADDED
     const prompt = `
 Topic: "${specificNiche}"
-STRICT FORMAT: Return 8 sections separated by "|||".
+
+STYLE GUIDE (CRITICAL):
+1. WRITE LIKE A HUMAN: Use short sentences. Be punchy. Be conversational.
+2. NO "AI SMELL": Do NOT use robotic metaphors.
+3. BANNED WORDS (DO NOT USE): "Unlock", "Unleash", "Elevate", "Dive in", "Realm", "Symphony", "Game-changer", "Tapestry", "Mastering", "Harness".
+4. INTRO: Start directly with a hook or a question. No "Welcome to my blog" fluff.
+5. BODY: Use bullet points and bold text for readability.
+
+STRICT FORMAT: Return exactly 8 sections separated by "|||".
 Order: NICHE_NAME ||| BLOG_TITLE ||| INTRO ||| QUOTE ||| PIN_HOOK ||| SUB_HOOK ||| IMAGE_KEYWORD ||| HTML_BODY
 
-RULES: 
-1. PIN_HOOK: Main punchy headline (2-4 words, ALL CAPS). Big impact.
-2. SUB_HOOK: Supporting subtitle (4-7 words, descriptive). Explains the hook.
+RULES FOR SECTIONS: 
+1. PIN_HOOK: Main punchy headline (2-4 words, ALL CAPS). High impact.
+2. SUB_HOOK: Supporting subtitle (4-6 words, descriptive, don't use . —). No filler.
 3. Do NOT include labels like "PIN_HOOK:" or "SUB_HOOK:".
-4. HTML_BODY: Use <p> and <h2> tags only.
+4. HTML_BODY: Use <p>, <h2>, <ul>, and <li> tags only. Keep it clean.
 `;
 
-    const response = await axios.post(
-      API_URL,
-      {
-        model: MODEL_ID,
-        messages: [
-          { role: "system", content: "You are a professional blogger. Output raw text separated by delimiters only." },
-          { role: "user", content: prompt }
-        ],
-        max_tokens: 1500,
-        temperature: 0.8
-      },
-      {
-        headers: {
-          "Authorization": `Bearer ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json"
-        },
-        timeout: 60000 
-      }
-    );
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text().trim();
 
-    if (!response.data?.choices?.[0]?.message?.content) {
-      throw new Error(`API returned status ${response.status} but no content.`);
-    }
-
-    const text = response.data.choices[0].message.content.trim();
+    // Parse Response
     const parts = text.split("|||").map(p => p.trim());
 
-    // Fallback if AI messes up format
     if (parts.length < 8) {
+      console.warn("⚠️ AI output format warning. Using fallbacks.");
       return {
         category: parts[0] || "Lifestyle",
         title: parts[1] || specificNiche,
@@ -82,9 +72,8 @@ RULES:
     };
 
   } catch (error) {
-    const errorMsg = error.response?.data?.error?.message || error.message;
-    console.error(`❌ GitHub Model Error: ${errorMsg}`);
-    throw new Error(errorMsg);
+    console.error(`❌ Gemini Error: ${error.message}`);
+    throw new Error(error.message);
   }
 }
 
