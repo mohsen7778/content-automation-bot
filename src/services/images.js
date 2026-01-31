@@ -3,13 +3,19 @@
 const PINTEREST_WIDTH = 1080;
 const PINTEREST_HEIGHT = 1620;
 
-const FONT_MAP = {
-  'Inter': 'Roboto', 
-  'Source Sans Pro': 'Arial',
-  'Montserrat': 'Montserrat' 
-};
+// 🎨 MODERN GOOGLE FONTS (better than Arial/Roboto)
+const MODERN_FONTS = [
+  'Poppins',
+  'Playfair Display',
+  'Oswald',
+  'Lato',
+  'Raleway',
+  'Nunito',
+  'Ubuntu',
+  'Open Sans'
+];
 
-// 🎨 ARTISTIC FILTERS
+// 🎨 ARTISTIC FILTERS (all 21 official Cloudinary filters)
 const ARTISTIC_FILTERS = [
   'al_dente', 'athena', 'audrey', 'aurora', 'daguerre', 
   'eucalyptus', 'fes', 'frost', 'hairspray', 'hokusai', 
@@ -17,7 +23,7 @@ const ARTISTIC_FILTERS = [
   'red_rock', 'refresh', 'sizzle', 'sonnet', 'ukulele', 'zorro'
 ];
 
-// ⚡ ENHANCEMENT CHAINS
+// ⚡ ENHANCEMENT CHAINS (different polish levels)
 const ENHANCEMENT_CHAINS = [
   'e_improve/e_auto_contrast/e_sharpen:60',
   'e_improve/e_auto_color/e_vibrance:20/e_sharpen:70',
@@ -26,31 +32,23 @@ const ENHANCEMENT_CHAINS = [
   'e_improve/e_vibrance:15/e_sharpen:65/e_auto_contrast'
 ];
 
-// 📍 TEXT POSITIONS
-const TEXT_POSITIONS = [
-  { gravity: 'north', y: 120 },       
-  { gravity: 'north', y: 200 },       
-  { gravity: 'north', y: 300 },       
-  { gravity: 'south', y: 150 },       
-  { gravity: 'south', y: 280 },       
-  { gravity: 'south', y: 400 },       
-  { gravity: 'north_west', x: 80, y: 180 },   
-  { gravity: 'north_east', x: 80, y: 180 },   
-  { gravity: 'south_west', x: 80, y: 180 },   
-  { gravity: 'south_east', x: 80, y: 180 },   
-  { gravity: 'west', x: 60, y: 0 },           
-  { gravity: 'east', x: 60, y: 0 },           
+// 📍 MAIN HEADING POSITIONS (top & mid sections)
+const MAIN_HEADING_POSITIONS = [
+  { gravity: 'north', y: 180 },
+  { gravity: 'north', y: 250 },
+  { gravity: 'north', y: 320 },
+  { gravity: 'center', y: -150 },
+  { gravity: 'center', y: -50 },
 ];
 
-// 🎭 TEXT STYLING VARIATIONS
-// UPDATED: Reduced outlineWidth to 4-5 (was 8-10) for a cleaner look.
+// 🎭 TEXT STYLING VARIATIONS (slim outlines - 3-5px)
 const TEXT_STYLES = [
-  { color: 'FFFFFF', outlineColor: '000000', outlineWidth: 5 },   
-  { color: 'FFFFFF', outlineColor: '000000', outlineWidth: 6 },  
-  { color: '000000', outlineColor: 'FFFFFF', outlineWidth: 4 },   
-  { color: 'FFEB3B', outlineColor: '000000', outlineWidth: 5 },   
-  { color: 'FF6B6B', outlineColor: 'FFFFFF', outlineWidth: 4 },   
-  { color: '00D9FF', outlineColor: '000000', outlineWidth: 5 },   
+  { mainColor: 'FFFFFF', subColor: 'FFFFFF', outlineColor: '000000', mainOutline: 4, subOutline: 3 },
+  { mainColor: 'FFFFFF', subColor: 'E0E0E0', outlineColor: '000000', mainOutline: 5, subOutline: 3 },
+  { mainColor: '000000', subColor: '333333', outlineColor: 'FFFFFF', mainOutline: 4, subOutline: 3 },
+  { mainColor: 'FFEB3B', subColor: 'FFF9C4', outlineColor: '000000', mainOutline: 4, subOutline: 3 },
+  { mainColor: 'FF6B6B', subColor: 'FFAAAA', outlineColor: 'FFFFFF', mainOutline: 5, subOutline: 3 },
+  { mainColor: '00D9FF', subColor: 'B3F0FF', outlineColor: '000000', mainOutline: 4, subOutline: 3 },
 ];
 
 const smartLineBreak = (text) => {
@@ -58,7 +56,7 @@ const smartLineBreak = (text) => {
   const cleanText = text.replace(/#/g, '').replace(/\*/g, '').trim(); 
   const upperText = cleanText.toUpperCase();
   
-  if (cleanText.length <= 20) return encodeURIComponent(upperText);
+  if (cleanText.length <= 15) return encodeURIComponent(upperText);
 
   const words = upperText.split(' ');
   const middle = Math.ceil(words.length / 2);
@@ -72,72 +70,63 @@ const getRandomElement = (array) => {
   return array[Math.floor(Math.random() * array.length)];
 };
 
-const getDynamicFontSize = (text) => {
+const getDynamicFontSize = (text, isSubheading = false) => {
   const charCount = text.replace(/\s/g, '').length;
-  return Math.max(70, Math.min(130, 900 / charCount));
-};
-
-// HELPER: Calculate subtitle Y position based on main title gravity
-const getSubtitleParams = (mainPos) => {
-  const offset = 120; // Distance between Title and Subtitle
-  let y = mainPos.y || 0;
-  let gravity = mainPos.gravity;
-
-  // If top-aligned (north), subtitle goes DOWN (+y)
-  if (gravity.includes('north')) return `g_${gravity},y_${y + offset}`;
   
-  // If bottom-aligned (south), subtitle goes UP (closer to center, so smaller y from bottom)
-  // Wait, south counts pixels from bottom. To place subtitle BELOW title (closer to bottom), 
-  // we decrease Y. To place ABOVE, we increase Y.
-  // Let's place subtitle BELOW title. 
-  // Exception: If Y is too small, subtitle might get cut off. 
-  if (gravity.includes('south')) return `g_${gravity},y_${Math.max(20, y - 100)}`;
-
-  // If centered (west/east), Y starts at 0 (center). Subtitle goes DOWN.
-  return `g_${gravity},y_${y + offset}`;
+  if (isSubheading) {
+    // Subheading: 40-70px
+    return Math.max(40, Math.min(70, 600 / charCount));
+  }
+  
+  // Main heading: 80-140px
+  return Math.max(80, Math.min(140, 1000 / charCount));
 };
 
-// UPDATED: Now accepts 'subText'
-const generatePinUrl = (imageUrl, text, subText, theme = 'dark', font = 'Inter') => {
+const generatePinUrl = (imageUrl, mainHeading, subHeading) => {
+  // 1. Clean Pexels URL
   const cleanImageUrl = imageUrl.split('?')[0];
   const publicId = encodeURIComponent(cleanImageUrl);
   
-  const cleanText = smartLineBreak(text);
-  const cleanSubText = smartLineBreak(subText || ""); // Handle subtitle
+  const cleanMainText = smartLineBreak(mainHeading);
+  const cleanSubText = encodeURIComponent(subHeading.toUpperCase());
   
-  const cloudFont = FONT_MAP[font] || 'Roboto';
-  const fontSize = getDynamicFontSize(text);
-  const subFontSize = Math.max(40, fontSize - 40); // Subtitle is smaller
+  // Random modern font
+  const randomFont = getRandomElement(MODERN_FONTS);
+  
+  const mainFontSize = getDynamicFontSize(mainHeading, false);
+  const subFontSize = getDynamicFontSize(subHeading, true);
 
-  // Randoms
+  // 2. Random artistic filter
   const randomFilter = getRandomElement(ARTISTIC_FILTERS);
   const filterEffect = `e_art:${randomFilter}:50`;
+
+  // 3. Random enhancement chain
   const randomEnhancement = getRandomElement(ENHANCEMENT_CHAINS);
-  const randomPosition = getRandomElement(TEXT_POSITIONS);
+
+  // 4. Random position for main heading
+  const randomPosition = getRandomElement(MAIN_HEADING_POSITIONS);
+  const mainPositionParams = `g_${randomPosition.gravity},y_${randomPosition.y}`;
+  
+  // Subheading always 90px below main heading
+  const subYPosition = randomPosition.y + 90;
+  const subPositionParams = `g_${randomPosition.gravity},y_${subYPosition}`;
+
+  // 5. Random text style
   const randomStyle = getRandomElement(TEXT_STYLES);
 
-  // Position Logic
-  let mainPosParams = `g_${randomPosition.gravity}`;
-  if (randomPosition.x) mainPosParams += `,x_${randomPosition.x}`;
-  if (randomPosition.y) mainPosParams += `,y_${randomPosition.y}`;
-  
-  // Subtitle Position
-  let subPosParams = getSubtitleParams(randomPosition);
-  if (randomPosition.x) subPosParams += `,x_${randomPosition.x}`; // Keep same X alignment
-
-  // Base
+  // 6. Base Image Transformation (FILL entire frame)
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto`;
+
+  // 7. Apply filter + enhancement
   const visualPolish = `${filterEffect}/${randomEnhancement}/f_auto/q_auto`;
 
-  // Layer 1: Main Title
-  const textLayer1 = `l_text:${cloudFont}_${fontSize}_bold_line_spacing_-10_center:${cleanText},co_rgb:${randomStyle.color}/e_outline:${randomStyle.outlineWidth}:0,co_rgb:${randomStyle.outlineColor}/c_fit,w_950/fl_layer_apply,${mainPosParams}`;
+  // 8. MAIN HEADING Layer (with slim outline, perfectly centered)
+  const mainHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${mainFontSize}_black_center:${cleanMainText},co_rgb:${randomStyle.mainColor}/e_outline:${randomStyle.mainOutline}:0,co_rgb:${randomStyle.outlineColor}/c_fit,w_980/fl_layer_apply,${mainPositionParams}`;
 
-  // Layer 2: Subtitle (Smaller, same style)
-  // We use slightly thinner outline for smaller text
-  const subOutline = Math.max(3, randomStyle.outlineWidth - 2);
-  const textLayer2 = `l_text:${cloudFont}_${subFontSize}_bold_center:${cleanSubText},co_rgb:${randomStyle.color}/e_outline:${subOutline}:0,co_rgb:${randomStyle.outlineColor}/c_fit,w_850/fl_layer_apply,${subPosParams}`;
+  // 9. SUBHEADING Layer (below main, smaller font, slim outline, perfectly centered)
+  const subHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:${randomStyle.subColor}/e_outline:${randomStyle.subOutline}:0,co_rgb:${randomStyle.outlineColor}/c_fit,w_980/fl_layer_apply,${subPositionParams}`;
 
-  return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${textLayer1}/${textLayer2}/${publicId}`;
+  return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
 };
 
 module.exports = { generatePinUrl };
