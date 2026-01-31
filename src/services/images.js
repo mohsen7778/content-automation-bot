@@ -3,13 +3,17 @@
 const PINTEREST_WIDTH = 1080;
 const PINTEREST_HEIGHT = 1620;
 
-// 🎨 MODERN GOOGLE FONTS
-const MODERN_FONTS = [
-  'Poppins',
+// 🎨 MODERN GOOGLE FONTS - HEADING FONTS
+const HEADING_FONTS = [
   'Playfair Display',
   'Oswald',
+  'Raleway'
+];
+
+// 🎨 MODERN GOOGLE FONTS - SUBHEADING FONTS (Different from heading)
+const SUBHEADING_FONTS = [
+  'Poppins',
   'Lato',
-  'Raleway',
   'Nunito',
   'Open Sans'
 ];
@@ -29,27 +33,6 @@ const TEXT_POSITIONS = [
   
   // CENTER: Dead center split
   { gravity: 'center', mainY: -80, subY: 80 },
-];
-
-// 🎨 AESTHETIC DUAL PALETTES (No Plain White)
-const TEXT_STYLES = [
-  // 1. Cream & Soft Gold (Luxury)
-  { mainColor: 'F5F5DC', subColor: 'F0E68C' },
-  
-  // 2. Mint & Forest Green (Nature/Fresh)
-  { mainColor: 'E0FFE0', subColor: '98FB98' },
-  
-  // 3. Pale Blue & Navy (Professional)
-  { mainColor: 'E6F3FF', subColor: 'B0E0E6' },
-  
-  // 4. Soft Pink & Rose (Lifestyle)
-  { mainColor: 'FFE4E1', subColor: 'FFB6C1' },
-  
-  // 5. Lavender & Deep Purple (Creative)
-  { mainColor: 'E6E6FA', subColor: 'D8BFD8' },
-
-  // 6. Wheat & Tan (Earth Tones)
-  { mainColor: 'F5DEB3', subColor: 'D2B48C' }
 ];
 
 const smartLineBreak = (text, maxCharsPerLine = 20) => {
@@ -76,8 +59,8 @@ const getDynamicFontSize = (text, isSubheading = false) => {
   
   // FIXED SIZES (No Blur)
   if (isSubheading) {
-    // Subheading: Increased to 45px-60px for sharpness
-    return Math.max(45, Math.min(60, 500 / charCount));
+    // Subheading: 20% of original (original was 45-60, now 9-12px)
+    return Math.max(9, Math.min(12, 100 / charCount));
   }
   
   // Main heading: 70px-110px
@@ -93,8 +76,9 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
   const cleanMainText = smartLineBreak(mainHeading, 18);
   const cleanSubText = smartLineBreak(subHeading, 25);
   
-  // Fonts & Sizes
-  const randomFont = getRandomElement(MODERN_FONTS);
+  // Fonts & Sizes - Different fonts for heading and subheading
+  const headingFont = getRandomElement(HEADING_FONTS);
+  const subheadingFont = getRandomElement(SUBHEADING_FONTS);
   const mainFontSize = getDynamicFontSize(mainHeading, false);
   const subFontSize = getDynamicFontSize(subHeading, true);
 
@@ -102,17 +86,14 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
   const randomPosition = getRandomElement(TEXT_POSITIONS);
   const mainPositionParams = `g_${randomPosition.gravity},y_${randomPosition.mainY}`;
 
-  // 3. Aesthetic Palette (No Logic, Just Style)
-  const randomStyle = getRandomElement(TEXT_STYLES);
-
-  // 4. Base Image (No Filters, Pure Quality)
+  // 4. Base Image with g_auto:avoid to prevent text on face/main subject
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto,f_auto,q_auto`;
 
-  // 5. Main Heading Layer (Clean, Aesthetic Color with fl_text_no_trim for sharp rendering)
-  const mainHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText},co_rgb:${randomStyle.mainColor},fl_text_no_trim,$headingHeight_h/c_fit,w_900/fl_layer_apply,${mainPositionParams}`;
+  // 5. Main Heading Layer (Black color with fl_text_no_trim for sharp rendering, avoid faces)
+  const mainHeadingLayer = `l_text:${headingFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText},co_rgb:000000,fl_text_no_trim,$headingHeight_h/c_fit,w_900/fl_layer_apply,${mainPositionParams}`;
 
-  // 6. Subheading Layer (3mm = ~11px gap below heading using user-defined variable)
-  const subHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:${randomStyle.subColor},fl_text_no_trim/c_fit,w_900/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_11`;
+  // 6. Subheading Layer (Black color, 3mm = ~11px gap below heading using user-defined variable)
+  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:000000,fl_text_no_trim/c_fit,w_900/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_11`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
 };
