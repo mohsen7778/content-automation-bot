@@ -2,8 +2,8 @@ name: Daily Auto-Post
 
 on:
   schedule:
-    - cron: '0 9 * * *'
-  workflow_dispatch:
+    - cron: '0 9 * * *'  # Runs every day at 09:00 UTC
+  workflow_dispatch:      # Allows manual testing
 
 jobs:
   run-bot:
@@ -23,17 +23,18 @@ jobs:
 
     - name: Run Bot
       env:
-        # BLOGGER KEYS
+        # BLOGGER OAUTH (This matches your Secrets List!)
         BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
-        BLOGGER_CLIENT_EMAIL: ${{ secrets.BLOGGER_CLIENT_EMAIL }}
-        BLOGGER_PRIVATE_KEY: ${{ secrets.BLOGGER_PRIVATE_KEY }}
+        BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+        BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+        BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
         
-        # CLOUDINARY KEYS (The ones causing the error)
+        # CLOUDINARY
         CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
         CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
         CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         
-        # OTHER KEYS
+        # OTHERS
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
