@@ -90,11 +90,11 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
   // 4. Base Image with g_auto:avoid to prevent text on face/main subject
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto,f_auto,q_auto`;
 
-  // 5. Main Heading Layer (White text with black outline for visibility, 80% width to leave margins, save height)
-  const mainHeadingLayer = `l_text:${headingFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText},co_rgb:FFFFFF,fl_text_no_trim,w_864,c_fit,$headingHeight_h/e_outline:3:0,co_rgb:000000/fl_layer_apply,${mainPositionParams}`;
+  // 5. Main Heading Layer (White text with black drop shadow for visibility, 80% width to leave margins, save height)
+  const mainHeadingLayer = `l_text:${headingFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText},co_rgb:FFFFFF,fl_text_no_trim,w_864,c_fit,$headingHeight_h/e_shadow:10,x_5,y_5,co_rgb:000000/fl_layer_apply,${mainPositionParams}`;
 
-  // 6. Subheading Layer (White text with black outline, bold weight, 80% width, positioned 8px (2mm) below heading)
-  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_bold_center:${encodedSubText},co_rgb:FFFFFF,fl_text_no_trim,w_864,c_fit/e_outline:3:0,co_rgb:000000/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_8`;
+  // 6. Subheading Layer (White text with black drop shadow, bold weight, 80% width, positioned 8px (2mm) below heading)
+  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_bold_center:${encodedSubText},co_rgb:FFFFFF,fl_text_no_trim,w_864,c_fit/e_shadow:10,x_5,y_5,co_rgb:000000/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_8`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
 };
