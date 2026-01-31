@@ -28,7 +28,7 @@ jobs:
         BLOGGER_CLIENT_EMAIL: ${{ secrets.BLOGGER_CLIENT_EMAIL }}
         BLOGGER_PRIVATE_KEY: ${{ secrets.BLOGGER_PRIVATE_KEY }}
         
-        # CLOUDINARY (⚠️ THIS WAS MISSING BEFORE)
+        # CLOUDINARY (Required for the new Image/Pin features)
         CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
         CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
         CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
