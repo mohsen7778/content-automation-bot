@@ -42,14 +42,14 @@ const TEXT_POSITIONS = [
   { gravity: 'east', x: 60, y: 0 },           // Mid-right
 ];
 
-// 🎭 TEXT STYLING VARIATIONS (FIXED: rgb: prefix for hex colors)
+// 🎭 TEXT STYLING VARIATIONS
 const TEXT_STYLES = [
-  { color: 'FFFFFF', stroke: 'rgb:000000', strokeWidth: 8 },   // White text, black stroke
-  { color: 'FFFFFF', stroke: 'rgb:000000', strokeWidth: 10 },  // White text, thicker black
-  { color: '000000', stroke: 'rgb:FFFFFF', strokeWidth: 8 },   // Black text, white stroke
-  { color: 'FFEB3B', stroke: 'rgb:000000', strokeWidth: 9 },   // Yellow text, black stroke
-  { color: 'FF6B6B', stroke: 'rgb:FFFFFF', strokeWidth: 8 },   // Red text, white stroke
-  { color: '00D9FF', stroke: 'rgb:000000', strokeWidth: 9 },   // Cyan text, black stroke
+  { color: 'FFFFFF', outlineColor: '000000', outlineWidth: 8 },   // White text, black outline
+  { color: 'FFFFFF', outlineColor: '000000', outlineWidth: 10 },  // White text, thicker black
+  { color: '000000', outlineColor: 'FFFFFF', outlineWidth: 8 },   // Black text, white outline
+  { color: 'FFEB3B', outlineColor: '000000', outlineWidth: 9 },   // Yellow text, black outline
+  { color: 'FF6B6B', outlineColor: 'FFFFFF', outlineWidth: 8 },   // Red text, white outline
+  { color: '00D9FF', outlineColor: '000000', outlineWidth: 9 },   // Cyan text, black outline
 ];
 
 const smartLineBreak = (text) => {
@@ -104,15 +104,14 @@ const generatePinUrl = (imageUrl, text, theme = 'dark', font = 'Inter') => {
   const randomStyle = getRandomElement(TEXT_STYLES);
 
   // 6. Base Image Transformation (FIT without spaces - FILL mode)
-  // c_fill crops/zooms to fill entire Pinterest frame with no empty space
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto`;
 
   // 7. Apply filter + enhancement
   const visualPolish = `${filterEffect}/${randomEnhancement}/f_auto/q_auto`;
 
-  // 8. Text Layer with stroke outline (no background box)
-  // Using 'co_' for text color and 'stroke' effect for outline
-  const textLayer = `l_text:${cloudFont}_${fontSize}_bold_line_spacing_-10_center:${cleanText},co_rgb:${randomStyle.color}/e_stroke:outer,co_${randomStyle.stroke},w_${randomStyle.strokeWidth}/c_fit,w_950/fl_layer_apply,${positionParams}`;
+  // 8. Text Layer with outline effect (CORRECT SYNTAX)
+  // Text layer -> outline effect -> layer apply
+  const textLayer = `l_text:${cloudFont}_${fontSize}_bold_line_spacing_-10_center:${cleanText},co_rgb:${randomStyle.color}/e_outline:${randomStyle.outlineWidth}:0,co_rgb:${randomStyle.outlineColor}/c_fit,w_950/fl_layer_apply,${positionParams}`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${textLayer}/${publicId}`;
 };
