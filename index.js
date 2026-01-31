@@ -20,22 +20,24 @@ async function runBot() {
     const topic = getTopic();
     console.log(`🚀 Starting Bot | Topic: ${topic}`);
 
+    // 1. Generate Content
     const content = await generateContent(topic);
 
     console.log(`📷 Searching Pexels for: ${content.imagePrompt}...`);
-    const { landscapeUrl, portraitUrl } = await getImages(content.imagePrompt);
-
-    const bloggerImage = landscapeUrl;
     
-    // FIX APPLIED: Removed "dark" and "Inter".
-    // Now correctly passing the SubHook as the 3rd argument.
+    // 2. Get Images & Color
+    const { landscapeUrl, portraitUrl, avgColor } = await getImages(content.imagePrompt);
+    const bloggerImage = landscapeUrl;
+
+    // 3. Generate Pinterest Image (Vertical with Text)
     const pinterestImage = generatePinUrl(
         portraitUrl, 
         content.pinHook, 
-        content.subHook
+        content.subHook,
+        avgColor
     );
 
-    // 3. Post to Blogger
+    // 4. Post to Blogger
     const blogUrl = await postToBlogger({
         ...content,
         body: content.body, 
@@ -44,7 +46,25 @@ async function runBot() {
 
     console.log(`✅ Blog live: ${blogUrl}`);
 
-    // 4. Telegram Notification
+    // 5. Trigger Make.com (Pinterest Automation)
+    if (process.env.MAKE_WEBHOOK_URL) {
+        console.log("🔗 Triggering Make.com for Pinterest...");
+        try {
+            await axios.post(process.env.MAKE_WEBHOOK_URL, {
+                title: content.pinHook, // Use the Hook as the Pin Title
+                description: `${content.intro}\n\n${content.subHook}`,
+                link: blogUrl,
+                imageUrl: pinterestImage
+            });
+            console.log("✅ Sent data to Make.com!");
+        } catch (webhookErr) {
+            console.error("❌ Make.com Webhook Failed:", webhookErr.message);
+        }
+    } else {
+        console.log("⚠️ Skipping Pinterest: MAKE_WEBHOOK_URL missing in .env");
+    }
+
+    // 6. Telegram Notification
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -52,7 +72,6 @@ async function runBot() {
 
       console.log("📱 Downloading Pinterest image for Telegram...");
 
-      // STEP 1: DOWNLOAD IMAGE
       try {
         const response = await axios({ 
             url: pinterestImage, 
@@ -72,13 +91,11 @@ async function runBot() {
         throw new Error(`Cloudinary Download Failed: ${downloadErr.message}`);
       }
 
-      // STEP 2: SEND TO TELEGRAM
       try {
         const safeTitle = escapeMarkdown(content.title);
         const safeHook = escapeMarkdown(content.pinHook);
         const safeSubHook = escapeMarkdown(content.subHook);
         
-        // Updated Caption: Now shows the SubHook in italics
         const caption = `📝 *New Post:* ${safeTitle}\n\n📌 *${safeHook}*\n_${safeSubHook}_\n\n🔗 [Read More](${blogUrl})`;
 
         const form = new FormData();
