@@ -1,22 +1,19 @@
-name: Automated Content Bot
+name: Daily Auto-Post
 
 on:
-  workflow_dispatch:      # Manual trigger only
+  schedule:
+    - cron: '0 9 * * *'  # Runs every day at 09:00 UTC
+  workflow_dispatch:      # Allows manual testing
 
 jobs:
-  build:
+  run-bot:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write     # To save state.json
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
 
-    - name: Set up Node.js
+    - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
@@ -26,31 +23,17 @@ jobs:
 
     - name: Run Bot
       env:
-        # Bridges your secret to the code's expected variable name
-        GITHUB_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
-
-        # Blogger Config
-        BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
-        BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
-        BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+        # EXISTING SECRETS
         BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
-
-        # Image Config
-        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        BLOGGER_CLIENT_EMAIL: ${{ secrets.BLOGGER_CLIENT_EMAIL }}
+        BLOGGER_PRIVATE_KEY: ${{ secrets.BLOGGER_PRIVATE_KEY }}
         CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-        CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-        CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-        
-        # Notifications
+        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      
+        
+        # ⚠️ NEW SECRETS ADDED HERE ⚠️
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+        
       run: node index.js
-
-    - name: Save History
-      run: |
-        git config --global user.name "GitHub Action"
-        git config --global user.email "action@github.com"
-        git add data/state.json
-        git commit -m "Cycle topic [skip ci]" || echo "No changes"
-        git push
