@@ -93,7 +93,7 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
   const mainHeadingLayer = `l_text:${headingFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText},co_rgb:000000,fl_text_no_trim,$headingHeight_h/c_fit,w_900/fl_layer_apply,${mainPositionParams}`;
 
   // 6. Subheading Layer (Black color, 3mm = ~11px gap below heading using user-defined variable)
-  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:000000,fl_text_no_trim/c_fit,w_900/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_11`;
+  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:000000,fl_text_no_trim/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_11`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
 };
