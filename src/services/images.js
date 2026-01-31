@@ -15,40 +15,18 @@ const MODERN_FONTS = [
 ];
 
 // 📍 TEXT POSITIONS (STRICT CENTER ALIGNMENT)
-// Removed all Left/Right positions. 
-// Gravity 'north' and 'south' automatically center text horizontally.
+// calculatedGap: 30px (approx 2mm visually on mobile) + Font Height estimate
 const TEXT_POSITIONS = [
-  // NORTH (Top Aligned): Title at 120, Subtitle below it
-  { gravity: 'north', mainY: 120, subY: 300 }, 
-  { gravity: 'north', mainY: 180, subY: 360 },
+  // NORTH (Top): Heading at 150px, Subtitle at 260px (150 + 80px font + 30px gap)
+  { gravity: 'north', mainY: 150, subY: 260 }, 
+  { gravity: 'north', mainY: 200, subY: 310 },
   
-  // SOUTH (Bottom Aligned): Title at 400, Subtitle below it (closer to bottom)
-  { gravity: 'south', mainY: 400, subY: 200 },
-  { gravity: 'south', mainY: 500, subY: 300 },
+  // SOUTH (Bottom): Heading at 400px, Subtitle at 290px (from bottom)
+  // (Heading is higher up, subtitle follows it downwards)
+  { gravity: 'south', mainY: 400, subY: 290 },
   
-  // DEAD CENTER (Middle of screen)
-  { gravity: 'center', mainY: -50, subY: 100 },
-];
-
-// 🎨 COLOR PALETTES
-const TEXT_STYLES = [
-  // 1. Deep Charcoal & Soft Gray
-  { mainColor: '333333', subColor: '757575', outlineColor: '000000' },
-  
-  // 2. Navy Blue & Muted Sky Blue
-  { mainColor: '003366', subColor: '87CEEB', outlineColor: '000000' },
-  
-  // 3. Forest Green & Sage Green
-  { mainColor: '013220', subColor: '8A9A5B', outlineColor: '000000' },
-  
-  // 4. Royal Purple & Lavender
-  { mainColor: '4B0082', subColor: 'E6E6FA', outlineColor: '000000' },
-  
-  // 5. Classic Black & Crimson Red (White outline for visibility)
-  { mainColor: '000000', subColor: 'B22222', outlineColor: 'FFFFFF' },
-
-  // 6. Classic White & Light Gray (Standard)
-  { mainColor: 'FFFFFF', subColor: 'E0E0E0', outlineColor: '000000' }
+  // CENTER: Dead center split
+  { gravity: 'center', mainY: -60, subY: 50 },
 ];
 
 const smartLineBreak = (text, maxCharsPerLine = 20) => {
@@ -73,17 +51,34 @@ const getRandomElement = (array) => {
 const getDynamicFontSize = (text, isSubheading = false) => {
   const charCount = text.replace(/\s/g, '').length;
   
-  // REDUCED SIZES BY ~40% AS REQUESTED
+  // REDUCED BY ANOTHER 50%
   if (isSubheading) {
-    // Subheading: ~30px - 45px
-    return Math.max(30, Math.min(45, 450 / charCount));
+    // Subheading: Tiny (20px - 35px)
+    return Math.max(20, Math.min(35, 300 / charCount));
   }
   
-  // Main heading: ~50px - 80px
-  return Math.max(50, Math.min(80, 700 / charCount));
+  // Main heading: Standard (60px - 90px)
+  return Math.max(60, Math.min(90, 800 / charCount));
 };
 
-const generatePinUrl = (imageUrl, mainHeading, subHeading) => {
+// 🧠 CONTRAST LOGIC
+// Calculates luminance to determine if text should be Black or White
+const getContrastColor = (hexColor) => {
+  if (!hexColor) return 'FFFFFF'; // Default to white if undefined
+  
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  
+  // Standard luminance formula
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  
+  // If image is bright (>128), use BLACK text. Else use WHITE.
+  return (yiq >= 128) ? '000000' : 'FFFFFF';
+};
+
+const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
   // 1. Clean Pexels URL
   const cleanImageUrl = imageUrl.split('?')[0];
   const publicId = encodeURIComponent(cleanImageUrl);
@@ -97,27 +92,25 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading) => {
   const mainFontSize = getDynamicFontSize(mainHeading, false);
   const subFontSize = getDynamicFontSize(subHeading, true);
 
-  // 2. Position (Strict Vertical Axis)
+  // 2. Position
   const randomPosition = getRandomElement(TEXT_POSITIONS);
   const mainPositionParams = `g_${randomPosition.gravity},y_${randomPosition.mainY}`;
   const subPositionParams = `g_${randomPosition.gravity},y_${randomPosition.subY}`;
 
-  // 3. Color Palette
-  const randomStyle = getRandomElement(TEXT_STYLES);
+  // 3. Contrast Color Logic (The "Opposite" Color)
+  const contrastColor = getContrastColor(avgColor);
 
-  // 4. Base Image (Fill Screen, No Filters)
+  // 4. Base Image (No Filters, Pure Quality)
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto`;
-
-  // 5. Optimization Only (No artistic edits)
   const visualPolish = `f_auto,q_auto`;
 
-  // 6. Main Heading Layer 
-  // FIX: Reduced Size. e_outline:2:50 (2px width, 50% opacity).
-  const mainHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-15_center:${cleanMainText},co_rgb:${randomStyle.mainColor}/e_outline:2:50,co_rgb:${randomStyle.outlineColor}/c_fit,w_900/fl_layer_apply,${mainPositionParams}`;
+  // 5. Main Heading Layer (Clean, No Outline)
+  // co_rgb using calculated contrast color
+  const mainHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-15_center:${cleanMainText},co_rgb:${contrastColor}/c_fit,w_900/fl_layer_apply,${mainPositionParams}`;
 
-  // 7. Subheading Layer
-  // FIX: Reduced Size. e_outline:2:50 (2px width, 50% opacity).
-  const subHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:${randomStyle.subColor}/e_outline:2:50,co_rgb:${randomStyle.outlineColor}/c_fit,w_800/fl_layer_apply,${subPositionParams}`;
+  // 6. Subheading Layer (Tiny, Clean, No Outline)
+  // Uses same contrast color
+  const subHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:${contrastColor}/c_fit,w_800/fl_layer_apply,${subPositionParams}`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
 };
