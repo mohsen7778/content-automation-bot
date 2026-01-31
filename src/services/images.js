@@ -9,7 +9,7 @@ const FONT_MAP = {
   'Montserrat': 'Montserrat' 
 };
 
-// 🎨 ARTISTIC FILTERS
+// 🎨 ARTISTIC FILTERS (all 21 official Cloudinary filters)
 const ARTISTIC_FILTERS = [
   'al_dente', 'athena', 'audrey', 'aurora', 'daguerre', 
   'eucalyptus', 'fes', 'frost', 'hairspray', 'hokusai', 
@@ -17,7 +17,7 @@ const ARTISTIC_FILTERS = [
   'red_rock', 'refresh', 'sizzle', 'sonnet', 'ukulele', 'zorro'
 ];
 
-// ⚡ ENHANCEMENT CHAINS
+// ⚡ ENHANCEMENT CHAINS (different polish levels)
 const ENHANCEMENT_CHAINS = [
   'e_improve/e_auto_contrast/e_sharpen:60',
   'e_improve/e_auto_color/e_vibrance:20/e_sharpen:70',
@@ -26,25 +26,30 @@ const ENHANCEMENT_CHAINS = [
   'e_improve/e_vibrance:15/e_sharpen:65/e_auto_contrast'
 ];
 
-// 📍 TEXT POSITIONS
+// 📍 TEXT POSITIONS (truly random - avoiding center, covers full canvas)
 const TEXT_POSITIONS = [
-  { gravity: 'north', y: 150 },      
-  { gravity: 'north', y: 250 },      
-  { gravity: 'south', y: 200 },      
-  { gravity: 'south', y: 350 },      
-  { gravity: 'north_west', x: 100, y: 200 },
-  { gravity: 'north_east', x: 100, y: 200 },
+  { gravity: 'north', y: 120 },       // Top
+  { gravity: 'north', y: 200 },       // Top-mid
+  { gravity: 'north', y: 300 },       // Top-lower
+  { gravity: 'south', y: 150 },       // Bottom
+  { gravity: 'south', y: 280 },       // Bottom-mid
+  { gravity: 'south', y: 400 },       // Bottom-upper
+  { gravity: 'north_west', x: 80, y: 180 },   // Top-left
+  { gravity: 'north_east', x: 80, y: 180 },   // Top-right
+  { gravity: 'south_west', x: 80, y: 180 },   // Bottom-left
+  { gravity: 'south_east', x: 80, y: 180 },   // Bottom-right
+  { gravity: 'west', x: 60, y: 0 },           // Mid-left
+  { gravity: 'east', x: 60, y: 0 },           // Mid-right
 ];
 
-// 🎭 TEXT STYLING VARIATIONS
-// FIX APPLIED: Added 'rgb:' prefix to border colors.
-// Cloudinary crashes if you send 'bo_8px_solid_000000' without 'rgb:'.
+// 🎭 TEXT STYLING VARIATIONS (FIXED: rgb: prefix for hex colors)
 const TEXT_STYLES = [
-  { color: 'FFFFFF', border: 'rgb:000000', borderWidth: 8 },   // White text, black border
-  { color: 'FFFFFF', border: 'rgb:000000', borderWidth: 10 },  // White text, thicker black
-  { color: '000000', border: 'rgb:FFFFFF', borderWidth: 8 },   // Black text, white border
-  { color: 'FFEB3B', border: 'rgb:000000', borderWidth: 8 },   // Yellow text, black border
-  { color: 'FF6B6B', border: 'rgb:FFFFFF', borderWidth: 8 },   // Red text, white border
+  { color: 'FFFFFF', stroke: 'rgb:000000', strokeWidth: 8 },   // White text, black stroke
+  { color: 'FFFFFF', stroke: 'rgb:000000', strokeWidth: 10 },  // White text, thicker black
+  { color: '000000', stroke: 'rgb:FFFFFF', strokeWidth: 8 },   // Black text, white stroke
+  { color: 'FFEB3B', stroke: 'rgb:000000', strokeWidth: 9 },   // Yellow text, black stroke
+  { color: 'FF6B6B', stroke: 'rgb:FFFFFF', strokeWidth: 8 },   // Red text, white stroke
+  { color: '00D9FF', stroke: 'rgb:000000', strokeWidth: 9 },   // Cyan text, black stroke
 ];
 
 const smartLineBreak = (text) => {
@@ -52,6 +57,7 @@ const smartLineBreak = (text) => {
   const cleanText = text.replace(/#/g, '').replace(/\*/g, '').trim(); 
   const upperText = cleanText.toUpperCase();
   
+  // Break by character count instead of word count
   if (cleanText.length <= 20) return encodeURIComponent(upperText);
 
   const words = upperText.split(' ');
@@ -68,6 +74,7 @@ const getRandomElement = (array) => {
 
 const getDynamicFontSize = (text) => {
   const charCount = text.replace(/\s/g, '').length;
+  // Dynamic sizing: shorter text = bigger, longer text = smaller
   return Math.max(70, Math.min(130, 900 / charCount));
 };
 
@@ -80,27 +87,32 @@ const generatePinUrl = (imageUrl, text, theme = 'dark', font = 'Inter') => {
   const cloudFont = FONT_MAP[font] || 'Roboto';
   const fontSize = getDynamicFontSize(text);
 
-  // 2. Random Design Elements
+  // 2. Random artistic filter (50% intensity for subtlety)
   const randomFilter = getRandomElement(ARTISTIC_FILTERS);
   const filterEffect = `e_art:${randomFilter}:50`;
+
+  // 3. Random enhancement chain
   const randomEnhancement = getRandomElement(ENHANCEMENT_CHAINS);
-  
+
+  // 4. Random text position (12 different positions - truly random placement)
   const randomPosition = getRandomElement(TEXT_POSITIONS);
   let positionParams = `g_${randomPosition.gravity}`;
   if (randomPosition.x) positionParams += `,x_${randomPosition.x}`;
   if (randomPosition.y) positionParams += `,y_${randomPosition.y}`;
 
+  // 5. Random text style
   const randomStyle = getRandomElement(TEXT_STYLES);
 
-  // 3. Base Image
-  const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_pad,b_auto`;
+  // 6. Base Image Transformation (FIT without spaces - FILL mode)
+  // c_fill crops/zooms to fill entire Pinterest frame with no empty space
+  const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto`;
 
-  // 4. Polish
+  // 7. Apply filter + enhancement
   const visualPolish = `${filterEffect}/${randomEnhancement}/f_auto/q_auto`;
 
-  // 5. Text Layer
-  // bo_${...}px_solid_${randomStyle.border} now becomes bo_8px_solid_rgb:000000 (VALID)
-  const textLayer = `l_text:${cloudFont}_${fontSize}_bold_line_spacing_-10_center:${cleanText},co_rgb:${randomStyle.color},bo_${randomStyle.borderWidth}px_solid_${randomStyle.border},w_950,c_fit/fl_layer_apply,${positionParams}`;
+  // 8. Text Layer with stroke outline (no background box)
+  // Using 'co_' for text color and 'stroke' effect for outline
+  const textLayer = `l_text:${cloudFont}_${fontSize}_bold_line_spacing_-10_center:${cleanText},co_rgb:${randomStyle.color}/e_stroke:outer,co_${randomStyle.stroke},w_${randomStyle.strokeWidth}/c_fit,w_950/fl_layer_apply,${positionParams}`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${textLayer}/${publicId}`;
 };
