@@ -1,16 +1,19 @@
 const { google } = require('googleapis');
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.BLOGGER_CLIENT_ID,
-  process.env.BLOGGER_CLIENT_SECRET
-);
-
-oauth2Client.setCredentials({ refresh_token: process.env.BLOGGER_REFRESH_TOKEN });
-const blogger = google.blogger({ version: 'v3', auth: oauth2Client });
-
 async function postToBlogger(blogData) {
-  const finalHtml = `
-  <!-- Load Fonts: Added Lora for readable quotes -->
+  try {
+    // 1. AUTHENTICATION (Fixed: Added Redirect URL for stability)
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.BLOGGER_CLIENT_ID,
+      process.env.BLOGGER_CLIENT_SECRET,
+      "https://developers.google.com/oauthplayground" // Required for Refresh Tokens
+    );
+
+    oauth2Client.setCredentials({ refresh_token: process.env.BLOGGER_REFRESH_TOKEN });
+    const blogger = google.blogger({ version: 'v3', auth: oauth2Client });
+
+    // 2. YOUR CUSTOM DESIGN (Untouched)
+    const finalHtml = `
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&family=Lora:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
 
   <style>
@@ -138,11 +141,26 @@ async function postToBlogger(blogData) {
   </script>
   `;
 
-  const res = await blogger.posts.insert({
-    blogId: process.env.BLOGGER_BLOG_ID,
-    requestBody: { title: blogData.title, content: finalHtml },
-  });
-  return res.data.url;
+    // 3. UPLOAD (Fixed: Added Labels & Better Error Logging)
+    console.log("🚀 Uploading to Blogger...");
+    const res = await blogger.posts.insert({
+      blogId: process.env.BLOGGER_BLOG_ID,
+      requestBody: {
+        title: blogData.title,
+        content: finalHtml,
+        labels: [blogData.category, "Automated"], // Restored tags!
+      },
+    });
+
+    return res.data.url;
+
+  } catch (error) {
+    console.error("❌ Blogger Error:", error.message);
+    if (error.message.includes("permission")) {
+      console.error("💡 HINT: Check your BLOGGER_BLOG_ID. The account that created the Refresh Token must be an Admin/Author of this Blog ID.");
+    }
+    throw error;
+  }
 }
 
 module.exports = { postToBlogger };
