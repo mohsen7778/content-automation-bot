@@ -2,11 +2,10 @@ const { google } = require('googleapis');
 
 async function postToBlogger(blogData) {
   try {
-    // 1. AUTHENTICATION (Fixed: Added Redirect URL for stability)
+    // 1. AUTHENTICATION (REVERTED TO YOUR ORIGINAL CODE)
     const oauth2Client = new google.auth.OAuth2(
       process.env.BLOGGER_CLIENT_ID,
-      process.env.BLOGGER_CLIENT_SECRET,
-      "https://developers.google.com/oauthplayground" // Required for Refresh Tokens
+      process.env.BLOGGER_CLIENT_SECRET
     );
 
     oauth2Client.setCredentials({ refresh_token: process.env.BLOGGER_REFRESH_TOKEN });
@@ -141,24 +140,22 @@ async function postToBlogger(blogData) {
   </script>
   `;
 
-    // 3. UPLOAD (Fixed: Added Labels & Better Error Logging)
+    // 3. UPLOAD
     console.log("🚀 Uploading to Blogger...");
     const res = await blogger.posts.insert({
       blogId: process.env.BLOGGER_BLOG_ID,
       requestBody: {
         title: blogData.title,
         content: finalHtml,
-        labels: [blogData.category, "Automated"], // Restored tags!
+        labels: [blogData.category, "Automated"], 
       },
     });
 
+    console.log(`✅ Post Published! ID: ${res.data.id}`);
     return res.data.url;
 
   } catch (error) {
     console.error("❌ Blogger Error:", error.message);
-    if (error.message.includes("permission")) {
-      console.error("💡 HINT: Check your BLOGGER_BLOG_ID. The account that created the Refresh Token must be an Admin/Author of this Blog ID.");
-    }
     throw error;
   }
 }
