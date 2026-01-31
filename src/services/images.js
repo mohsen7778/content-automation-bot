@@ -10,7 +10,7 @@ const HEADING_FONTS = [
   'Raleway'
 ];
 
-// 🎨 MODERN GOOGLE FONTS - SUBHEADING FONTS (Different from heading)
+// 🎨 MODERN GOOGLE FONTS - SUBHEADING FONTS
 const SUBHEADING_FONTS = [
   'Poppins',
   'Lato',
@@ -18,88 +18,92 @@ const SUBHEADING_FONTS = [
   'Open Sans'
 ];
 
-// 📍 TEXT POSITIONS (STRICT CENTER ALIGNMENT)
+// 📍 TEXT POSITIONS
 const TEXT_POSITIONS = [
-  { gravity: 'north', mainY: 150, subY: 310 },
-  { gravity: 'north', mainY: 200, subY: 360 },
-  { gravity: 'south', mainY: 450, subY: 290 },
-  { gravity: 'center', mainY: -80, subY: 80 },
+  { gravity: 'north', mainY: 150 },
+  { gravity: 'north', mainY: 200 },
+  { gravity: 'south', mainY: 450 },
+  { gravity: 'center', mainY: -80 }
 ];
 
 const smartLineBreak = (text, maxCharsPerLine = 20) => {
   if (!text) return "";
-  const cleanText = text.replace(/#/g, '').replace(/\*/g, '').trim();
-  const upperText = cleanText.toUpperCase();
+  const cleanText = text.replace(/[#*]/g, '').trim().toUpperCase();
 
   if (cleanText.length <= maxCharsPerLine) {
-    return encodeURIComponent(upperText);
+    return encodeURIComponent(cleanText);
   }
 
-  const words = upperText.split(' ');
-  const middle = Math.ceil(words.length / 2);
-  const line1 = encodeURIComponent(words.slice(0, middle).join(' '));
-  const line2 = encodeURIComponent(words.slice(middle).join(' '));
-
-  return `${line1}%0A${line2}`;
+  const words = cleanText.split(' ');
+  const mid = Math.ceil(words.length / 2);
+  return (
+    encodeURIComponent(words.slice(0, mid).join(' ')) +
+    '%0A' +
+    encodeURIComponent(words.slice(mid).join(' '))
+  );
 };
 
-const getRandomElement = (array) => {
-  return array[Math.floor(Math.random() * array.length)];
+const getRandomElement = (arr) =>
+  arr[Math.floor(Math.random() * arr.length)];
+
+const getDynamicFontSize = (text, isSub = false) => {
+  const chars = text.replace(/\s/g, '').length;
+  return isSub
+    ? Math.max(40, Math.min(52, 460 / chars))
+    : Math.max(70, Math.min(110, 900 / chars));
 };
 
-const getDynamicFontSize = (text, isSubheading = false) => {
-  const charCount = text.replace(/\s/g, '').length;
-
-  if (isSubheading) {
-    return Math.max(40, Math.min(52, 460 / charCount));
-  }
-
-  return Math.max(70, Math.min(110, 900 / charCount));
-};
-
-const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
+const generatePinUrl = (imageUrl, mainHeading, subHeading) => {
   const cleanImageUrl = imageUrl.split('?')[0];
   const publicId = encodeURIComponent(cleanImageUrl);
 
-  const cleanMainText = smartLineBreak(mainHeading, 18);
-  const cleanSubText = subHeading.replace(/#/g, '').replace(/\*/g, '').trim().toUpperCase();
-  const encodedSubText = encodeURIComponent(cleanSubText);
+  const mainText = smartLineBreak(mainHeading, 18);
+  const subText = encodeURIComponent(
+    subHeading.replace(/[#*]/g, '').trim().toUpperCase()
+  );
 
-  const headingFont = getRandomElement(HEADING_FONTS);
-  const subheadingFont = getRandomElement(SUBHEADING_FONTS);
-  const mainFontSize = getDynamicFontSize(mainHeading, false);
-  const subFontSize = getDynamicFontSize(subHeading, true);
+  const headingFont = getRandomElement(HEADING_FONTS).replace(/ /g, '%20');
+  const subFont = getRandomElement(SUBHEADING_FONTS).replace(/ /g, '%20');
 
-  const randomPosition = getRandomElement(TEXT_POSITIONS);
-  const mainPositionParams = `g_${randomPosition.gravity},y_${randomPosition.mainY}`;
+  const mainSize = getDynamicFontSize(mainHeading);
+  const subSize = getDynamicFontSize(subHeading, true);
 
-  // Base image
+  const pos = getRandomElement(TEXT_POSITIONS);
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto,f_auto,q_auto`;
 
-  // 🔥 VISIBILITY FIX PART (IMPORTANT)
+  // ===== MAIN HEADING SHADOW =====
+  const mainShadow =
+    `l_text:${headingFont}_${mainSize}_bold_line_spacing_-10_center:${mainText},` +
+    `co_rgb:000000,o_60,w_864,c_fit` +
+    `/fl_layer_apply,g_${pos.gravity},y_${pos.mainY},x_2,y_2`;
 
-  // 1️⃣ Soft dark overlay only behind text area
-  const textOverlay = `e_gradient_fade:y_${randomPosition.mainY},co_black,o_45`;
+  // ===== MAIN HEADING TEXT =====
+  const mainTextLayer =
+    `l_text:${headingFont}_${mainSize}_bold_line_spacing_-10_center:${mainText},` +
+    `co_rgb:FFFFFF,w_864,c_fit` +
+    `/fl_layer_apply,g_${pos.gravity},y_${pos.mainY}`;
 
-  // 2️⃣ Main Heading (White + Shadow + Stroke)
-  const mainHeadingLayer =
-    `l_text:${headingFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText}` +
-    `,co_rgb:FFFFFF,` +
-    `shadow:90,` +
-    `stroke_1_co_rgb:000000,` +
-    `fl_text_no_trim,w_864,c_fit` +
-    `/fl_layer_apply,${mainPositionParams}`;
+  // ===== SUBHEADING SHADOW =====
+  const subShadow =
+    `l_text:${subFont}_${subSize}_bold_center:${subText},` +
+    `co_rgb:000000,o_55,w_864,c_fit` +
+    `/fl_layer_apply,g_${pos.gravity},y_${pos.mainY + 160},x_2,y_2`;
 
-  // 3️⃣ Subheading (White + Shadow)
-  const subHeadingLayer =
-    `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_bold_center:${encodedSubText}` +
-    `,co_rgb:FFFFFF,` +
-    `shadow:80,` +
-    `fl_text_no_trim,w_864,c_fit` +
-    `/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_8`;
+  // ===== SUBHEADING TEXT =====
+  const subTextLayer =
+    `l_text:${subFont}_${subSize}_bold_center:${subText},` +
+    `co_rgb:FFFFFF,w_864,c_fit` +
+    `/fl_layer_apply,g_${pos.gravity},y_${pos.mainY + 160}`;
 
-  return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/` +
-    `${baseFrame}/${textOverlay}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
+  return (
+    `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/` +
+    `${baseFrame}/` +
+    `${mainShadow}/` +
+    `${mainTextLayer}/` +
+    `${subShadow}/` +
+    `${subTextLayer}/` +
+    `${publicId}`
+  );
 };
 
 module.exports = { generatePinUrl };
