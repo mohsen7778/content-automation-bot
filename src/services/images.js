@@ -32,15 +32,14 @@ const ENHANCEMENT_CHAINS = [
 ];
 
 // 📍 TEXT POSITIONS (Stacking Logic)
-// UPDATED: Increased gap between mainY and subY to ~300px to fit 2-line titles safely.
+// mainY: Title Y position.
+// subY: Subtitle Y position (Must be far enough to avoid overlap).
 const TEXT_POSITIONS = [
   // NORTH (Top Aligned): Title at 120, Subtitle pushed down to 420
   { gravity: 'north', mainY: 120, subY: 420 }, 
   { gravity: 'north', mainY: 150, subY: 450 },
   
-  // SOUTH (Bottom Aligned): Title at 450, Subtitle below it at 200 (from bottom)
-  // Note: For South gravity, larger Y = further up. Smaller Y = closer to bottom.
-  // We want Title HIGHER (450) and Subtitle LOWER (150).
+  // SOUTH (Bottom Aligned): Title at 450, Subtitle below it at 150 (from bottom)
   { gravity: 'south', mainY: 450, subY: 150 },
   { gravity: 'south', mainY: 500, subY: 200 },
 
@@ -49,22 +48,22 @@ const TEXT_POSITIONS = [
   { gravity: 'north_east', x: 60, mainY: 150, subY: 450 },
 ];
 
-// 🎨 COLOR PALETTES (With 2px Outline)
+// 🎨 COLOR PALETTES (Strict Black Outline)
 const TEXT_STYLES = [
-  // 1. Deep Charcoal & Soft Gray (White Outline for contrast)
-  { mainColor: '333333', subColor: '757575', outlineColor: 'FFFFFF' },
+  // 1. Deep Charcoal & Soft Gray (Black Outline)
+  { mainColor: '333333', subColor: '757575', outlineColor: '000000' },
   
-  // 2. Navy Blue & Muted Sky Blue (White Outline)
-  { mainColor: '003366', subColor: '87CEEB', outlineColor: 'FFFFFF' },
+  // 2. Navy Blue & Muted Sky Blue (Black Outline)
+  { mainColor: '003366', subColor: '87CEEB', outlineColor: '000000' },
   
-  // 3. Forest Green & Sage Green (White Outline)
-  { mainColor: '013220', subColor: '8A9A5B', outlineColor: 'FFFFFF' },
+  // 3. Forest Green & Sage Green (Black Outline)
+  { mainColor: '013220', subColor: '8A9A5B', outlineColor: '000000' },
   
-  // 4. Royal Purple & Lavender (White Outline)
-  { mainColor: '4B0082', subColor: 'E6E6FA', outlineColor: 'FFFFFF' },
+  // 4. Royal Purple & Lavender (Black Outline)
+  { mainColor: '4B0082', subColor: 'E6E6FA', outlineColor: '000000' },
   
-  // 5. Classic Black & Crimson Red (White Outline)
-  { mainColor: '000000', subColor: 'B22222', outlineColor: 'FFFFFF' },
+  // 5. Classic Black & Crimson Red (White Outline for Black text, Black for Red)
+  { mainColor: '000000', subColor: 'B22222', outlineColor: 'FFFFFF' }, // Exception: White outline needed for black text
 
   // 6. Classic White & Light Gray (Black Outline - Standard)
   { mainColor: 'FFFFFF', subColor: 'E0E0E0', outlineColor: '000000' }
@@ -93,8 +92,9 @@ const getDynamicFontSize = (text, isSubheading = false) => {
   const charCount = text.replace(/\s/g, '').length;
   
   if (isSubheading) {
-    // Subheading: Reduced by 40% (Now 25-40px)
-    return Math.max(25, Math.min(40, 650 / charCount));
+    // FIX: Increased Min Size to 50px to prevent blurriness.
+    // Range: 50px - 70px (Sharp & Readable)
+    return Math.max(50, Math.min(70, 750 / charCount));
   }
   
   // Main heading: Large (80-130px)
@@ -117,7 +117,7 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading) => {
 
   // 2. Random Artistic Filter
   const randomFilter = getRandomElement(ARTISTIC_FILTERS);
-  const filterEffect = `e_art:${randomFilter}:50`; // 50% intensity
+  const filterEffect = `e_art:${randomFilter}:50`;
 
   // 3. Random Enhancement
   const randomEnhancement = getRandomElement(ENHANCEMENT_CHAINS);
@@ -142,12 +142,13 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading) => {
   const visualPolish = `${filterEffect}/${randomEnhancement}/f_auto/q_auto`;
 
   // 8. Main Heading Layer 
-  // FIX: line_spacing_-20 keeps double lines tight. e_outline:2 adds thin border.
-  const mainHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-20_center:${cleanMainText},co_rgb:${randomStyle.mainColor}/e_outline:2:100,co_rgb:${randomStyle.outlineColor}/c_fit,w_980/fl_layer_apply,${mainPositionParams}`;
+  // w_900 allows full width but keeps padding.
+  const mainHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-20_center:${cleanMainText},co_rgb:${randomStyle.mainColor}/e_outline:2:100,co_rgb:${randomStyle.outlineColor}/c_fit,w_900/fl_layer_apply,${mainPositionParams}`;
 
   // 9. Subheading Layer
-  // FIX: Smaller font size. e_outline:2 adds thin border.
-  const subHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:${randomStyle.subColor}/e_outline:2:100,co_rgb:${randomStyle.outlineColor}/c_fit,w_980/fl_layer_apply,${subPositionParams}`;
+  // FIX: w_800 ensures "Safe sides" (140px padding on each side).
+  // FIX: c_fit prevents stretching. Text wraps naturally.
+  const subHeadingLayer = `l_text:${randomFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:${randomStyle.subColor}/e_outline:2:100,co_rgb:${randomStyle.outlineColor}/c_fit,w_800/fl_layer_apply,${subPositionParams}`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${visualPolish}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
 };
