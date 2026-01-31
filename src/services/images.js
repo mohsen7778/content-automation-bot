@@ -59,8 +59,8 @@ const getDynamicFontSize = (text, isSubheading = false) => {
   
   // FIXED SIZES (No Blur)
   if (isSubheading) {
-    // Subheading: 35-45px for clear visibility
-    return Math.max(35, Math.min(45, 400 / charCount));
+    // Subheading: Increased by 15% from 35-45px to 40-52px
+    return Math.max(40, Math.min(52, 460 / charCount));
   }
   
   // Main heading: 70px-110px
@@ -74,7 +74,8 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
   
   // Process Text
   const cleanMainText = smartLineBreak(mainHeading, 18);
-  const cleanSubText = smartLineBreak(subHeading, 25);
+  const cleanSubText = subHeading.replace(/#/g, '').replace(/\*/g, '').trim().toUpperCase(); // No forced line breaks for subheading
+  const encodedSubText = encodeURIComponent(cleanSubText);
   
   // Fonts & Sizes - Different fonts for heading and subheading
   const headingFont = getRandomElement(HEADING_FONTS);
@@ -92,8 +93,8 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
   // 5. Main Heading Layer (Black color, 80% width to leave margins, save height)
   const mainHeadingLayer = `l_text:${headingFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText},co_rgb:000000,fl_text_no_trim,w_864,c_fit,$headingHeight_h/fl_layer_apply,${mainPositionParams}`;
 
-  // 6. Subheading Layer (Black color, 80% width, positioned 8px (2mm) below heading)
-  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:000000,fl_text_no_trim,w_864,c_fit/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_8`;
+  // 6. Subheading Layer (Black color, bold weight, 80% width, positioned 8px (2mm) below heading)
+  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_bold_center:${encodedSubText},co_rgb:000000,fl_text_no_trim,w_864,c_fit/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_8`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
 };
