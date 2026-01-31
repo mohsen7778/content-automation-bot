@@ -26,7 +26,14 @@ async function runBot() {
     const { landscapeUrl, portraitUrl } = await getImages(content.imagePrompt);
 
     const bloggerImage = landscapeUrl;
-    const pinterestImage = generatePinUrl(portraitUrl, content.pinHook, "dark", "Inter");
+    
+    // FIX APPLIED: Removed "dark" and "Inter".
+    // Now correctly passing the SubHook as the 3rd argument.
+    const pinterestImage = generatePinUrl(
+        portraitUrl, 
+        content.pinHook, 
+        content.subHook
+    );
 
     // 3. Post to Blogger
     const blogUrl = await postToBlogger({
@@ -45,7 +52,7 @@ async function runBot() {
 
       console.log("📱 Downloading Pinterest image for Telegram...");
 
-      // STEP 1: DOWNLOAD IMAGE (Cloudinary Check)
+      // STEP 1: DOWNLOAD IMAGE
       try {
         const response = await axios({ 
             url: pinterestImage, 
@@ -62,7 +69,6 @@ async function runBot() {
         });
 
       } catch (downloadErr) {
-        // If this hits, your Cloudinary URL is wrong (e.g., syntax error)
         throw new Error(`Cloudinary Download Failed: ${downloadErr.message}`);
       }
 
@@ -70,7 +76,10 @@ async function runBot() {
       try {
         const safeTitle = escapeMarkdown(content.title);
         const safeHook = escapeMarkdown(content.pinHook);
-        const caption = `📝 *New Post:* ${safeTitle}\n\n📌 *Pin:* ${safeHook}\n\n🔗 [Read More](${blogUrl})`;
+        const safeSubHook = escapeMarkdown(content.subHook);
+        
+        // Updated Caption: Now shows the SubHook in italics
+        const caption = `📝 *New Post:* ${safeTitle}\n\n📌 *${safeHook}*\n_${safeSubHook}_\n\n🔗 [Read More](${blogUrl})`;
 
         const form = new FormData();
         form.append('chat_id', chatId);
@@ -85,7 +94,6 @@ async function runBot() {
         console.log("✅ Telegram Notification Sent!");
 
       } catch (telegramErr) {
-        // If this hits, it's a Markdown error or Token issue
         console.error("❌ Telegram Send Failed:", telegramErr.response?.data?.description || telegramErr.message);
       } finally {
         if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
