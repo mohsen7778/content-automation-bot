@@ -23,16 +23,20 @@ jobs:
 
     - name: Run Bot
       env:
-        # EXISTING SECRETS
+        # BLOGGER
         BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
         BLOGGER_CLIENT_EMAIL: ${{ secrets.BLOGGER_CLIENT_EMAIL }}
         BLOGGER_PRIVATE_KEY: ${{ secrets.BLOGGER_PRIVATE_KEY }}
+        
+        # CLOUDINARY (⚠️ THIS WAS MISSING BEFORE)
         CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+        CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+        CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        
+        # OTHERS
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        
-        # ⚠️ NEW SECRETS ADDED HERE ⚠️
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
         
