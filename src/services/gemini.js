@@ -13,7 +13,7 @@ async function generateContent(specificNiche) {
     // Using the latest model
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // 🔥 INTENSIFIED PROMPT: ANTI-AI SMELL INSTRUCTIONS ADDED
+    // 🔥 STYLE GUIDE: ANTI-AI SMELL INSTRUCTIONS
     const prompt = `
 Topic: "${specificNiche}"
 
@@ -29,7 +29,7 @@ Order: NICHE_NAME ||| BLOG_TITLE ||| INTRO ||| QUOTE ||| PIN_HOOK ||| SUB_HOOK |
 
 RULES FOR SECTIONS: 
 1. PIN_HOOK: Main punchy headline (2-4 words, ALL CAPS). High impact.
-2. SUB_HOOK: Supporting subtitle (4-6 words, descriptive, don't use . —). No filler.
+2. SUB_HOOK: Supporting subtitle (4-6 words, descriptive). No filler.
 3. Do NOT include labels like "PIN_HOOK:" or "SUB_HOOK:".
 4. HTML_BODY: Use <p>, <h2>, <ul>, and <li> tags only. Keep it clean.
 `;
