@@ -59,8 +59,8 @@ const getDynamicFontSize = (text, isSubheading = false) => {
   
   // FIXED SIZES (No Blur)
   if (isSubheading) {
-    // Subheading: 20% of original (original was 45-60, now 9-12px)
-    return Math.max(9, Math.min(12, 100 / charCount));
+    // Subheading: Increased by 20% from 9-12px to 11-14px
+    return Math.max(11, Math.min(14, 120 / charCount));
   }
   
   // Main heading: 70px-110px
@@ -90,10 +90,10 @@ const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
   const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto,f_auto,q_auto`;
 
   // 5. Main Heading Layer (Black color with fl_text_no_trim for sharp rendering, save height to variable)
-  const mainHeadingLayer = `l_text:${headingFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText},co_rgb:000000,fl_text_no_trim/c_fit,w_900,$headingHeight_h/fl_layer_apply,${mainPositionParams}`;
+  const mainHeadingLayer = `l_text:${headingFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText},co_rgb:000000,fl_text_no_trim,w_900,c_fit,$headingHeight_h/fl_layer_apply,${mainPositionParams}`;
 
-  // 6. Subheading Layer (Black color, positioned using saved heading height + 11px gap)
-  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:000000,fl_text_no_trim/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_11`;
+  // 6. Subheading Layer (Black color, positioned exactly 192px (2 inches) below heading)
+  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_semibold_center:${cleanSubText},co_rgb:000000,fl_text_no_trim/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_192`;
 
   return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
 };
