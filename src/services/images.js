@@ -3,12 +3,14 @@
 const PINTEREST_WIDTH = 1080;
 const PINTEREST_HEIGHT = 1620;
 
+// 🎨 MODERN GOOGLE FONTS - HEADING FONTS
 const HEADING_FONTS = [
   'Playfair Display',
   'Oswald',
   'Raleway'
 ];
 
+// 🎨 MODERN GOOGLE FONTS - SUBHEADING FONTS (Different from heading)
 const SUBHEADING_FONTS = [
   'Poppins',
   'Lato',
@@ -16,83 +18,85 @@ const SUBHEADING_FONTS = [
   'Open Sans'
 ];
 
+// 📍 TEXT POSITIONS (STRICT CENTER ALIGNMENT)
+// Gap Calculation: Heading can be 2 lines (~120px height). 
+// We need ~40px gap (approx 3mm visual) below that.
+// So SubY should be MainY + 160.
 const TEXT_POSITIONS = [
-  { gravity: 'north', mainY: 150 },
-  { gravity: 'north', mainY: 200 },
-  { gravity: 'south', mainY: 450 },
-  { gravity: 'center', mainY: -80 }
+  // NORTH (Top): Heading at 150px, Subtitle at 310px
+  { gravity: 'north', mainY: 150, subY: 310 }, 
+  { gravity: 'north', mainY: 200, subY: 360 },
+  
+  // SOUTH (Bottom): Heading at 450px, Subtitle at 290px (from bottom)
+  // (Heading is higher up, subtitle follows it downwards)
+  { gravity: 'south', mainY: 450, subY: 290 },
+  
+  // CENTER: Dead center split
+  { gravity: 'center', mainY: -80, subY: 80 },
 ];
 
-const smartLineBreak = (text, maxChars = 20) => {
+const smartLineBreak = (text, maxCharsPerLine = 20) => {
   if (!text) return "";
-  const t = text.replace(/[#*]/g, '').trim().toUpperCase();
-  if (t.length <= maxChars) return encodeURIComponent(t);
+  const cleanText = text.replace(/#/g, '').replace(/\*/g, '').trim(); 
+  const upperText = cleanText.toUpperCase();
+  
+  if (cleanText.length <= maxCharsPerLine) return encodeURIComponent(upperText);
 
-  const w = t.split(' ');
-  const m = Math.ceil(w.length / 2);
-  return (
-    encodeURIComponent(w.slice(0, m).join(' ')) +
-    '%0A' +
-    encodeURIComponent(w.slice(m).join(' '))
-  );
+  const words = upperText.split(' ');
+  const middle = Math.ceil(words.length / 2);
+  const line1 = encodeURIComponent(words.slice(0, middle).join(' '));
+  const line2 = encodeURIComponent(words.slice(middle).join(' '));
+  
+  return `${line1}%0A${line2}`;
 };
 
-const rand = (a) => a[Math.floor(Math.random() * a.length)];
-
-const fontSize = (text, sub = false) => {
-  const c = text.replace(/\s/g, '').length;
-  return sub
-    ? Math.max(40, Math.min(52, 460 / c))
-    : Math.max(70, Math.min(110, 900 / c));
+const getRandomElement = (array) => {
+  return array[Math.floor(Math.random() * array.length)];
 };
 
-const generatePinUrl = (imageUrl, mainHeading, subHeading) => {
-  const img = encodeURIComponent(imageUrl.split('?')[0]);
+const getDynamicFontSize = (text, isSubheading = false) => {
+  const charCount = text.replace(/\s/g, '').length;
+  
+  // FIXED SIZES (No Blur)
+  if (isSubheading) {
+    // Subheading: Increased by 15% from 35-45px to 40-52px
+    return Math.max(40, Math.min(52, 460 / charCount));
+  }
+  
+  // Main heading: 70px-110px
+  return Math.max(70, Math.min(110, 900 / charCount));
+};
 
-  const mainText = smartLineBreak(mainHeading, 18);
-  const subText = encodeURIComponent(
-    subHeading.replace(/[#*]/g, '').trim().toUpperCase()
-  );
+const generatePinUrl = (imageUrl, mainHeading, subHeading, avgColor) => {
+  // 1. Clean Pexels URL
+  const cleanImageUrl = imageUrl.split('?')[0];
+  const publicId = encodeURIComponent(cleanImageUrl);
+  
+  // Process Text
+  const cleanMainText = smartLineBreak(mainHeading, 18);
+  const cleanSubText = subHeading.replace(/#/g, '').replace(/\*/g, '').trim().toUpperCase(); // No forced line breaks for subheading
+  const encodedSubText = encodeURIComponent(cleanSubText);
+  
+  // Fonts & Sizes - Different fonts for heading and subheading
+  const headingFont = getRandomElement(HEADING_FONTS);
+  const subheadingFont = getRandomElement(SUBHEADING_FONTS);
+  const mainFontSize = getDynamicFontSize(mainHeading, false);
+  const subFontSize = getDynamicFontSize(subHeading, true);
 
-  const hFont = rand(HEADING_FONTS).replace(/ /g, '%20');
-  const sFont = rand(SUBHEADING_FONTS).replace(/ /g, '%20');
+  // 2. Position
+  const randomPosition = getRandomElement(TEXT_POSITIONS);
+  const mainPositionParams = `g_${randomPosition.gravity},y_${randomPosition.mainY}`;
 
-  const hSize = fontSize(mainHeading);
-  const sSize = fontSize(subHeading, true);
+  // 4. Base Image with g_auto:avoid to prevent text on face/main subject
+  const baseFrame = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto,f_auto,q_auto`;
 
-  const pos = rand(TEXT_POSITIONS);
+  // 5. Main Heading Layer (White text with black outline for visibility, 80% width to leave margins, save height)
+  const mainHeadingLayer = `l_text:${headingFont.replace(/ /g, '%20')}_${mainFontSize}_bold_line_spacing_-10_center:${cleanMainText},co_rgb:FFFFFF,fl_text_no_trim,w_864,c_fit,$headingHeight_h/e_outline:3:0,co_rgb:000000/fl_layer_apply,${mainPositionParams}`;
 
-  const base = `w_${PINTEREST_WIDTH},h_${PINTEREST_HEIGHT},c_fill,g_auto,f_auto,q_auto`;
+  // 6. Subheading Layer (White text with black outline, bold weight, 80% width, positioned 8px (2mm) below heading)
+  const subHeadingLayer = `l_text:${subheadingFont.replace(/ /g, '%20')}_${subFontSize}_bold_center:${encodedSubText},co_rgb:FFFFFF,fl_text_no_trim,w_864,c_fit/e_outline:3:0,co_rgb:000000/fl_layer_apply,g_${randomPosition.gravity},y_${randomPosition.mainY}_add_$headingHeight_add_8`;
 
-  const mainShadow =
-    `l_text:${hFont}_${hSize}_bold_line_spacing_-10_center:${mainText},` +
-    `co_rgb:000000,o_60,w_864,c_fit` +
-    `/fl_layer_apply,g_${pos.gravity},x_2,y_${pos.mainY + 2}`;
-
-  const mainTextLayer =
-    `l_text:${hFont}_${hSize}_bold_line_spacing_-10_center:${mainText},` +
-    `co_rgb:FFFFFF,w_864,c_fit` +
-    `/fl_layer_apply,g_${pos.gravity},y_${pos.mainY}`;
-
-  const subShadow =
-    `l_text:${sFont}_${sSize}_bold_center:${subText},` +
-    `co_rgb:000000,o_55,w_864,c_fit` +
-    `/fl_layer_apply,g_${pos.gravity},x_2,y_${pos.mainY + 162}`;
-
-  const subTextLayer =
-    `l_text:${sFont}_${sSize}_bold_center:${subText},` +
-    `co_rgb:FFFFFF,w_864,c_fit` +
-    `/fl_layer_apply,g_${pos.gravity},y_${pos.mainY + 160}`;
-
-  return (
-    `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/` +
-    `${base}/` +
-    `${mainShadow}/` +
-    `${mainTextLayer}/` +
-    `${subShadow}/` +
-    `${subTextLayer}/` +
-    `${img}`
-  );
+  return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/fetch/${baseFrame}/${mainHeadingLayer}/${subHeadingLayer}/${publicId}`;
 };
 
 module.exports = { generatePinUrl };
