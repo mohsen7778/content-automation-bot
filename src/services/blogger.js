@@ -1,17 +1,15 @@
 const { google } = require('googleapis');
 
+const oauth2Client = new google.auth.OAuth2(
+  process.env.BLOGGER_CLIENT_ID,
+  process.env.BLOGGER_CLIENT_SECRET
+);
+
+oauth2Client.setCredentials({ refresh_token: process.env.BLOGGER_REFRESH_TOKEN });
+const blogger = google.blogger({ version: 'v3', auth: oauth2Client });
+
 async function postToBlogger(blogData) {
   try {
-    // 1. AUTHENTICATION (REVERTED TO YOUR ORIGINAL CODE)
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.BLOGGER_CLIENT_ID,
-      process.env.BLOGGER_CLIENT_SECRET
-    );
-
-    oauth2Client.setCredentials({ refresh_token: process.env.BLOGGER_REFRESH_TOKEN });
-    const blogger = google.blogger({ version: 'v3', auth: oauth2Client });
-
-    // 2. YOUR CUSTOM DESIGN (Untouched)
     const finalHtml = `
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&family=Lora:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
 
@@ -48,7 +46,7 @@ async function postToBlogger(blogData) {
       letter-spacing: 4px; text-transform: uppercase; color: #1f1f1f;
     }
 
-    /* 3. CONTENT LAYOUT - GAP KILLED */
+    /* 3. CONTENT LAYOUT */
     .mia-main {
       max-width: 760px; 
       margin: -45px auto 0 !important; 
@@ -68,26 +66,14 @@ async function postToBlogger(blogData) {
     .mia-image-wrap { width: 100%; margin-bottom: 40px; }
     .mia-image-wrap img { width: 100%; height: auto !important; border-radius: 12px; display: block; margin: 0 auto; }
     
-    /* 4. TYPOGRAPHY - ELEGANT SMALL SIZE */
-    .mia-body { 
-      font-size: 0.92rem; 
-      line-height: 1.8; 
-      color: #333; 
-    }
-    .mia-intro { 
-      font-size: 1rem; 
-      font-weight: 500; margin-bottom: 30px; color: #111; line-height: 1.6; 
-    }
+    .mia-body { font-size: 0.92rem; line-height: 1.8; color: #333; }
+    .mia-intro { font-size: 1rem; font-weight: 500; margin-bottom: 30px; color: #111; line-height: 1.6; }
     
-    /* 5. THE QUOTE BOX - NEW READABLE FONT (LORA) */
     .mia-quote-box {
       margin: 45px 0; padding: 40px 30px; background: #fdf5f3; 
       border-radius: 0 40px 0 40px; text-align: center;
-      font-family: 'Lora', serif; /* Changed from Playfair for readability */
-      font-size: 1.15rem; 
-      font-style: italic; 
-      line-height: 1.6;
-      color: #444;
+      font-family: 'Lora', serif;
+      font-size: 1.15rem; font-style: italic; line-height: 1.6; color: #444;
     }
 
     .mia-cta {
@@ -140,14 +126,13 @@ async function postToBlogger(blogData) {
   </script>
   `;
 
-    // 3. UPLOAD
     console.log("🚀 Uploading to Blogger...");
     const res = await blogger.posts.insert({
       blogId: process.env.BLOGGER_BLOG_ID,
       requestBody: {
         title: blogData.title,
         content: finalHtml,
-        labels: [blogData.category, "Automated"], 
+        labels: [blogData.category, "Automated"],
       },
     });
 
