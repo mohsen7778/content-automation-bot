@@ -11,16 +11,16 @@ async function generateContent(specificNiche) {
       throw new Error("GITHUB_TOKEN is missing.");
     }
     
-    // UPDATED PROMPT: Added SUB_HOOK to the list (8 sections now)
+    // UPDATED PROMPT: Added SUB_HOOK (8 sections)
     const prompt = `
 Topic: "${specificNiche}"
 STRICT FORMAT: Return 8 sections separated by "|||".
 Order: NICHE_NAME ||| BLOG_TITLE ||| INTRO ||| QUOTE ||| PIN_HOOK ||| SUB_HOOK ||| IMAGE_KEYWORD ||| HTML_BODY
 
 RULES: 
-1. PIN_HOOK: Main punchy text (2-4 words). Big impact.
-2. SUB_HOOK: A supporting subtitle (3-5 words). Explains the hook.
-3. Do NOT include labels.
+1. PIN_HOOK: Main punchy headline (2-4 words, ALL CAPS). Big impact.
+2. SUB_HOOK: Supporting subtitle (4-7 words, descriptive). Explains the hook.
+3. Do NOT include labels like "PIN_HOOK:" or "SUB_HOOK:".
 4. HTML_BODY: Use <p> and <h2> tags only.
 `;
 
@@ -59,22 +59,24 @@ RULES:
         intro: parts[2] || "A quick guide.",
         quote: parts[3] || "Consistency is key.",
         pinHook: parts[4] || "READ NOW", 
-        subHook: "Click to read more", // Fallback subtitle
-        imagePrompt: parts[6] || "lifestyle", // Adjusted index
+        subHook: parts[5] || "Click to read more",
+        imagePrompt: parts[6] || "lifestyle",
         body: parts[7] || `<p>${text}</p>` 
       };
     }
 
     const cleanCategory = parts[0].replace(/^(Category|Topic|Niche):\s*/i, "").replace(/\*/g, "");
     const cleanTitle = parts[1].replace(/^(Title|Blog Title):\s*/i, "").replace(/"/g, "");
+    const cleanPinHook = parts[4].replace(/^(PIN_HOOK|Hook):\s*/i, "").toUpperCase();
+    const cleanSubHook = parts[5].replace(/^(SUB_HOOK|Subtitle):\s*/i, "");
 
     return { 
       category: cleanCategory, 
       title: cleanTitle, 
       intro: parts[2],
       quote: parts[3], 
-      pinHook: parts[4], 
-      subHook: parts[5], // New Field
+      pinHook: cleanPinHook,
+      subHook: cleanSubHook,
       imagePrompt: parts[6], 
       body: parts[7] 
     };
